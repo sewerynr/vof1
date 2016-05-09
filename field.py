@@ -15,7 +15,7 @@ class EdgeField:          # pole dla krawedzi zawiera inf co na krawedziach w ko
         self.mesh = mesh
 
 #!!!!!!!!!!!!!!!!!! te funkcje maja byc w warunkach brzeg ale tu sa nie koniecznie potrzebne (pokazuja strukture WB)!!!!!!!!!!!!!!!!!!!
-    def upadate(self):                  #
+    def upadate(self):                  #`
         '''
         Placeholder for future upadates of values at boundary. It will be called after field solution change
         :return: None
