@@ -6,6 +6,8 @@ from fvm1 import *
 
 
 
+
+
 class EdgeField:          # pole dla krawedzi zawiera inf co na krawedziach w konstr pobiera siatke mesh oraz numer krawedzi boundaryId
     def __init__(self, mesh, boundaryId):
         self.data = np.array([0.] * len(mesh.boundaries[boundaryId]))  # inicjuje zerami pobierajac dlugosc z mesh.boundaries[boundaryId]
