@@ -51,12 +51,12 @@ T.apply_bc(M, F)    # dodawanie warunkow brzegowych do macierzy i wektora PS fun
 
 A = solve(M, F)
 
-T.setValues(solve(M, F))        #  rozw uklad rownan
+T.setValues(A)        #  rozw uklad rownan
 
 # print T.data
 # print A
 
-draw_values_edges(mesh.xy, mesh.cells, A, n, DlPrzX, DlPrzY, Tdir)
+draw_values_edges(mesh.xy, mesh.cells, T, n, DlPrzX, DlPrzY, Tdir)
 
 # index_draw_cell( mesh.xy, mesh.cells)
 
