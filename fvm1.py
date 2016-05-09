@@ -131,13 +131,23 @@ def draw_values_edges(wsp_wezl, cells, T, n, Tdirich, DlPrzX, DlPrzY):
     '''
     :param  T jako pole temperatur z rozwiazania Tdirich WB dir
     '''
-    Tinter = inter(wsp_wezl, cells, T)
-    Tinter[:n+1] = Tdirich
+    Tinter = inter(wsp_wezl, cells, T.data)
+
+    for bId, b in enumerate(T.mesh.boundaries):
+        varB = T.boundaries[bId]
+        for eLocal, eGlobal in enumerate(b):
+            valOnEdge = varB[eLocal]
+            node1 = T.mesh.list_kr[eGlobal, 0]
+            node2 = T.mesh.list_kr[eGlobal, 1]
+            Tinter[ [node1, node2] ] = valOnEdge
+
+
     # numpy linespace dzieli przedzial na n podzialow o rownym odstepie
     X, Y = np.meshgrid(np.linspace(0, DlPrzX, n+1), np.linspace(0, DlPrzY, n+1))
     T_new = Tinter.reshape((n+1, n+1))
     plt.figure()
-    plt.contourf(X, Y, T_new)
+    cont = plt.contourf(X, Y, T_new)
+    plt.colorbar(cont)
     plt.show()
 
 
