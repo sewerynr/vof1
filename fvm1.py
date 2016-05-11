@@ -157,7 +157,8 @@ def draw_values_centers(dx, dy,  DlPrzX, DlPrzY, n, T):
     X, Y = np.meshgrid(np.linspace(dx/2, DlPrzX-dx/2, n), np.linspace(dy/2, DlPrzY-dy/2, n))
     T_new = T.reshape((n, n))
     plt.figure()
-    plt.contourf(X, Y, T_new)
+    cont = plt.contourf(X, Y, T_new)
+    plt.colorbar(cont)
     plt.show()
 
 

@@ -27,40 +27,38 @@ T.data = 0 # [:] do listy przypisze wartosc 5, samo = przypisze inny obiekt   pr
 Tdir = 1
 
 # neuman    def __init__(self, mesh, bId, derivativeValue )
-T.setBoundaryCondition(Neuman(mesh, 0, -10))     #  zero odpowiada zerowej krawedzi pobiera obiekt klasy Dirichlet (wywoluje go i tworzy)
+T.setBoundaryCondition(Neuman(mesh, 0, -5))     #  zero odpowiada zerowej krawedzi pobiera obiekt klasy Dirichlet (wywoluje go i tworzy)
+#T.setBoundaryCondition(Dirichlet(mesh, 0, 10))
 
 #T.setBoundaryCondition(Neuman(mesh, 1, -10))
 T.setBoundaryCondition(Dirichlet(mesh, 1, Tdir))
 
 T.setBoundaryCondition(Dirichlet(mesh, 2, Tdir))
+
 T.setBoundaryCondition(Dirichlet(mesh, 3, Tdir))
 
 # d = Dirichlet(mesh, 3, Tdir)
 # d[:] = 1            # domyslnie zainicjalizowana zerami (dziedziczy po EdgeField) tu zapisuje te krawedz wartoscia = 1
 # T.setBoundaryCondition(d)
 
-T.mesh.cells
-
 
 M, F = laplace(T)    # po prostu ukladanie macierzy i wektora prawych stron
 
-
 T.apply_bc(M, F)    # dodawanie warunkow brzegowych do macierzy i wektora PS funkcja pochodzi z klasy T czyli SurfField
 
-# print M, F
 
-A = solve(M, F)
+A = solve(M, F)         #  rozw uklad rownan
 
-T.setValues(A)        #  rozw uklad rownan
+T.setValues(A)          # pole temp do aktualizacji wartosci temp w WB Neumana
 
 # print T.data
 # print A
 
 draw_values_edges(mesh.xy, mesh.cells, T, n, DlPrzX, DlPrzY, Tdir)
 
-# index_draw_cell( mesh.xy, mesh.cells)
+#index_draw_cell( mesh.xy, mesh.cells)
 
 #draw_edges(mesh.xy, mesh.list_kr)
 
 
-draw_values_centers(dx, dy, DlPrzX, DlPrzY, n, A)
+#draw_values_centers(dx, dy, DlPrzX, DlPrzY, n, A)

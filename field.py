@@ -3,6 +3,7 @@ from mesh import *
 from fvm1 import *
 
 
+
 class EdgeField:          # pole dla krawedzi zawiera inf co na krawedziach w konstr pobiera siatke mesh oraz numer krawedzi boundaryId
     def __init__(self, mesh, boundaryId):
         self.data = np.array([0.] * len(mesh.boundaries[boundaryId]))  # inicjuje zerami pobierajac dlugosc z mesh.boundaries[boundaryId]
@@ -10,9 +11,9 @@ class EdgeField:          # pole dla krawedzi zawiera inf co na krawedziach w ko
         self.mesh = mesh
 
 #!!!!!!!!!!!!!!!!!! te funkcje maja byc w warunkach brzeg ale tu sa nie koniecznie potrzebne (pokazuja strukture WB)!!!!!!!!!!!!!!!!!!!
-    def upadate(self):                  #`
+    def upadate(self, solution_field):          # ????????????????  ma przekazac rozw?
         '''
-        Placeholder for future upadates of values at boundary. It will be called after field solution change
+        Placeholder for future updates of values at boundary. It will be called after field solution change
         :return: None
         '''
         pass
@@ -26,7 +27,7 @@ class EdgeField:          # pole dla krawedzi zawiera inf co na krawedziach w ko
         '''
         pass
 
-    def setUniformValue(self, val):             #  co to robi? do obiektu przypisuje wartosc val? przypisze do tego po czym dziedziczy czyli po array
+    def setUniformValue(self, val):
         '''
         Sets uniform value along whole boundary in respective field
         :param val: value which should be set to all edges
@@ -71,59 +72,27 @@ class Dirichlet(EdgeField):         # clasa dla kazdej krawedzi o warunku dirich
             nr_kr_1, nr_kr_2 = field.mesh.list_kr[id_edge, 0], field.mesh.list_kr[id_edge, 1]
             ck3 = (field.mesh.xy[nr_kr_1, :] + field.mesh.xy[nr_kr_2, :]) / 2  # srodek scianki to samo co ck1 i ck2 ale od razu dla 2 wsp srodka sciany [x,y]
             ad = wspolczynnik_d(ck3, cc1, field.mesh.xy[nr_kr_1, :], field.mesh.xy[nr_kr_2, :])    #pobiera wsp punkt z ktorych sklada sie krawedz
-
             EqMat[c, c] -= ad           #   do kom wlasciciela przypisuje wsp
             Rhs[c] += - self.data[i] * ad
-
-    # for kraw in self.mesh.boundaries:
-    #     for i in range(len(kraw)):
-    #         id_edge = kraw[i]  # indeks krawedzi w WB
-    #         # print field.mesh.list_kr
-    #         c = field.mesh.list_kr[id_edge, 2]  # pobierz wlascicela tej krawedzi
-    #         # print c
-    #         cc1 = sum(field.mesh.xy[field.mesh.cells[c], :]) / len(field.mesh.cells[c])  # srodek komorki
-    #         nr_kr_1, nr_kr_2 = field.mesh.list_kr[id_edge, 0], field.mesh.list_kr[id_edge, 1]
-    #         ck3 = (field.mesh.xy[nr_kr_1, :] + field.mesh.xy[nr_kr_2,
-    #                                            :]) / 2  # srodek scianki to samo co ck1 i ck2 ale od razu dla 2 wsp srodka sciany [x,y]
-    #         # print field.mesh.xy[nr_kr_1, :]
-    #         ad = wspolczynnik_d(ck3, cc1, field.mesh.xy[nr_kr_1, :],
-    #                             field.mesh.xy[nr_kr_2, :])  # pobiera wsp punkt z ktorych sklada sie krawedz
-    #         EqMat[c, c] -= ad  # do kom wlasciciela przypisuje wsp
-    #         # zadanie warunku brzegowego na lewej sciance jako symetrii
-    #         # if field.mesh.xy[nr_kr_1, 1] == 0 and field.mesh.xy[nr_kr_2, 1] == 0:  # spr wspl obu wezlow krawedzi czy sa rowne zero po y
-    #         # Rhs[c] += - self.fi * ad
-    #
-    #
-    def manipulateMatrixVector1(self, EqMat, Rhs):
-        # for kraw in lista_kr:
-        #     if kraw[3] == -1:
-        #         c = kraw[2]  # indeks komorki wlascicela
-        #         macierz_K_e[c,
-        #         :] = 0  # wakazuje na wiersz czyli na komorke i zapisuje we wszystkich elementach wiersza 0
-        #         macierz_K_e[c, c] = 1  # na przekatnej wpisuje 1
-        #         if wsp_wezl[kraw[0], 1] == 0 and wsp_wezl[
-        #             kraw[1], 1] == 0:  # spr wspl obu wezlow krawedzi czy sa rowne zero po y
-        #             wektor_pr_str[c] = Td
-        #
-        # return wektor_pr_str
-        pass
-
-
 
 
 
 
 
 class Neuman(EdgeField):            # klasa dla kazdej krawedzi o warunku neuman
-    def __init__(self, mesh, bId, derivativeValue ): # derivativeValue po prostu wart poch
+    def __init__(self, mesh, bId, derivativeValue ):            # derivativeValue po prostu zadana wart poch na krawedzi WB
         EdgeField.__init__(self, mesh, bId)
 
         self.deriv = derivativeValue
-        self.id = bId  # zapisuje numer krawedzi pod oznaczeniem id
+        self.id = bId            # zapisuje numer krawedzi pod oznaczeniem id
         self.mesh = mesh
 
-    def upadate(self):           #   gdy sie rozwiaze to ma uaktualnic sama siebie ta metoda te klase
+    def upadate(self, rozw_ukl_row):           # gdy sie rozwiaze to ma uaktualnic sama siebie ta metoda te klase
         # mamy pochodna (wartosci szukanej) na krawedzi ale nie wiemy jaka sama wartosci wiec do np wizualizacji przyda nam sie wartosc rozwiazaznia (calka z poch)
+        self.sol = rozw_ukl_row
+        print len(self.sol)
+
+
         '''
         TODO - calc. edge values from cells canter and derivative value on edge
         :return: None
@@ -137,7 +106,6 @@ class Neuman(EdgeField):            # klasa dla kazdej krawedzi o warunku neuman
             c = self.field.mesh.list_kr[id_edge, 2]   # indeks wlasciciela do niego dopicac w rhs
             nr_kr_1, nr_kr_2 = self.field.mesh.list_kr[id_edge, 0], self.field.mesh.list_kr[id_edge, 1]
             wekt_ws = self.field.mesh.wsp_wekt_z_wsp(self.field.mesh.xy[nr_kr_1, :], self.field.mesh.xy[nr_kr_2, :])
-            #print self.field.mesh.dl_wekt(wekt_ws[0],wekt_ws[1])
             Rhs[c] += - self.deriv * self.field.mesh.dl_wekt(wekt_ws[0], wekt_ws[1])          #  dodac razy dlugosc
 
 
@@ -176,11 +144,11 @@ class SurfField:              # to jest po prostu field z wartosciami rozwiazani
         bcObject.setField(self)
         self.boundaries[bcObject.id] = bcObject   # przypisuje do tej listy (***) (tylko z numerami krawedzi WB) zadane przez urzytkownika WB
 
-    def setValues(self, lista_wart):                     # to zada
-        self.data = lista_wart
-        for b in self.boundaries:   # b kolejny warunek brzegowy tu 4
-          #  b.update()  ?????????????????????????????
-            b.upadate()
+    def setValues(self, lista_wart):       # pobiera rozwiazanie ukladu rownan (pole temp) - uaktualnia wartosci pola temp tak aby na krawedziach WB neumana byly temp nie strumienie ciepla (do wizualizacji)
+        self.data = lista_wart          # rozwiazanie tu tablica "A"
+        for b in self.boundaries:       # b kolejny warunek brzegowy tu 4 warunki
+            b.upadate(self.data)        # przekaz pole temp do funkcji upadate
+
 
     def apply_bc(self, EqMat, Rhs):          # ma wrzucic ten warunek na macierz K i WPS
         for b in self.boundaries:   # petla po 4 war brzeg (te brzegi juz zapisalem uzywajac setBoundaryCondition
@@ -189,10 +157,10 @@ class SurfField:              # to jest po prostu field z wartosciami rozwiazani
 
 
 
-
-
-def values(obiekt):
-    return obiekt._sol
+#
+#
+# def values(obiekt):
+#     return obiekt._sol
 
 
 
