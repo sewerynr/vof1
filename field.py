@@ -9,9 +9,10 @@ class EdgeField:          # pole dla krawedzi zawiera inf co na krawedziach w ko
         self.data = np.array([0.] * len(mesh.boundaries[boundaryId]))  # inicjuje zerami pobierajac dlugosc z mesh.boundaries[boundaryId]
         self.id = boundaryId       # zapisuje numer krawedzi pod oznaczeniem id
         self.mesh = mesh
-
+        #print self.mesh.boundaries
 #!!!!!!!!!!!!!!!!!! te funkcje maja byc w warunkach brzeg ale tu sa nie koniecznie potrzebne (pokazuja strukture WB)!!!!!!!!!!!!!!!!!!!
-    def upadate(self, solution_field):          # ????????????????  ma przekazac rozw?
+
+    def upadate(self, solution_field):   # ta metoda musi tu byc odwolujemy sie do tej ktora nic nie robi dla Dirichleta, a nadpisujem metoda lokalna dla Neumanna
         '''
         Placeholder for future updates of values at boundary. It will be called after field solution change
         :return: None
@@ -87,12 +88,14 @@ class Neuman(EdgeField):            # klasa dla kazdej krawedzi o warunku neuman
         self.id = bId            # zapisuje numer krawedzi pod oznaczeniem id
         self.mesh = mesh
 
+    # mamy pochodna (wartosci szukanej) na krawedzi ale nie wiemy jaka sama wartosci wiec do np wizualizacji przyda nam sie wartosc rozwiazaznia (calka z poch)
     def upadate(self, rozw_ukl_row):           # gdy sie rozwiaze to ma uaktualnic sama siebie ta metoda te klase
-        # mamy pochodna (wartosci szukanej) na krawedzi ale nie wiemy jaka sama wartosci wiec do np wizualizacji przyda nam sie wartosc rozwiazaznia (calka z poch)
         self.sol = rozw_ukl_row
-        print len(self.sol)
+        print self.mesh.boundaries_points
+        self.extrapolate()
 
-
+        # print (self.mesh.boundaries[0, :].size)        # zwraca rozmiar pod macierzy (rozmiar wiersza)
+        # dane numery pkt w tablicy mesh.xy[12] = x12, y12 mozemy odczytac wsp pkt z ktorych jest krawedz i policzyc sr krawedzi
         '''
         TODO - calc. edge values from cells canter and derivative value on edge
         :return: None
@@ -108,6 +111,37 @@ class Neuman(EdgeField):            # klasa dla kazdej krawedzi o warunku neuman
             wekt_ws = self.field.mesh.wsp_wekt_z_wsp(self.field.mesh.xy[nr_kr_1, :], self.field.mesh.xy[nr_kr_2, :])
             Rhs[c] += - self.deriv * self.field.mesh.dl_wekt(wekt_ws[0], wekt_ws[1])          #  dodac razy dlugosc
 
+    def extrapolate(self):       # i to numer krawedzi w WB
+        for i in range(self.mesh.boundaries[0, :].size):
+
+            id_edge = self.mesh.boundaries[self.id, i]  # indeks krawedzi w WB
+            field = self.field
+            c = self.mesh.list_kr[id_edge, 2]  # pobierz wlascicela tej krawedzi
+            cc1 = sum(field.mesh.xy[field.mesh.cells[c], :]) / len(field.mesh.cells[c])  # srodek komorki  [x,y]
+            # print "cc1:", cc1
+            #print self.mesh.boundaries[self.id, i]
+            #print i
+
+            n = self.mesh.edge_normal(self.mesh.boundaries[self.id, i])        # normalny do wektora (krawedzi WB) ale o jego dlugosci (trzeba pobrac numer pod krawedzi )
+            n = n / np.linalg.norm(n)           # wersor normalny (podzielony przez swoja dlugosc)
+
+            sr_pod_krawBC = ( (self.field.mesh.xy[self.mesh.boundaries_points[self.id, i, 0]] + self.field.mesh.xy[self.mesh.boundaries_points[self.id, i, 1]]) )/2  # wsp srodka podkrawedzi WB [x,y]
+            # print "sr_pod_kr:", sr_pod_krawBC
+
+            e = self.mesh.wsp_wekt_z_wsp(cc1, sr_pod_krawBC)
+
+            #print "n: ", n
+            #print "e: ", e
+            ds = np.dot(-n, e)    # wektor od srodka komurki do srodka sciany
+            #print "ds: ", ds
+            #print " "
+
+            flux = self.deriv
+            Tsr = self.sol[c]
+            print "Tsr:", Tsr
+            #Tbrzeg = Tsr + flux*ds
+            self.data[i] = Tsr + flux*ds
+            print self.data[i]
 
 
 
@@ -141,7 +175,7 @@ class SurfField:              # to jest po prostu field z wartosciami rozwiazani
         return self.data.__getitem__(item)
 
     def setBoundaryCondition(self, bcObject):           # to zada warunki brzegowe bcObject( np class/object nemuam) na surface field
-        bcObject.setField(self)
+        bcObject.setField(self)                 # na przyklad  neuman.setFirld(self)
         self.boundaries[bcObject.id] = bcObject   # przypisuje do tej listy (***) (tylko z numerami krawedzi WB) zadane przez urzytkownika WB
 
     def setValues(self, lista_wart):       # pobiera rozwiazanie ukladu rownan (pole temp) - uaktualnia wartosci pola temp tak aby na krawedziach WB neumana byly temp nie strumienie ciepla (do wizualizacji)

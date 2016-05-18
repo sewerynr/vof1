@@ -6,13 +6,14 @@ class Mesh:
     def __init__(self, nodes, cells, boundaries):
         self.xy = nodes
         self.cells = cells
-        self.n = cells.shape[0]
+        self.n = cells.shape[0]    # shape returns the dimension of array. shape[0] daje ilosc wierszy shape[1] kolumn
 
         # self.__wsp_dl__ = None  # tez do (*****)
         self.wsp_dl = self.__wektor_wsp_idl__()         # wywolaj __prywatna metode__ i oddaj tablice wsp.dl
 
         self.list_kr = self.__lista_krawedzi__()
         self.list_kr = self.__wlasciciel_sasiad__(self.list_kr)
+        self.boundaries_points = boundaries
         self.boundaries = self.__bound_to_edge_bound__(boundaries)
 
         # self.boundaries = boundaries
@@ -33,13 +34,13 @@ class Mesh:
                 for idEdge, edge in enumerate(self.list_kr):
                     if (edge_nodes[0] == edge[0] and edge_nodes[1] == edge[1]) or (edge_nodes[1] == edge[0] and edge_nodes[0] == edge[1]):
                         bond_to_edge[idBoundry][idBEdge] = idEdge
-
+        #print bond_to_edge
         return bond_to_edge
 
 
     def __wektor_wsp_idl__(self):
 
-        wekt_wsp_dlw = np.array([[0.] * 14] * (self.n) )
+        wekt_wsp_dlw = np.array([[0.] * 14] * (self.n))
         for l in range(self.n):
 
             wekt_wsp_dlw[l, 0] = self.xy[self.cells[l, 1], 0] - self.xy[self.cells[l, 0], 0]  # po x
@@ -74,13 +75,13 @@ class Mesh:
         dp = p2 - p1
         return [dp[1], -dp[0]]
 
-    def wsp_wekt(self, i, j): # zamiast wsp pobiera numery poczatkowego i koncowego punktu wektora
+    def wsp_wekt(self, i, j):   # zamiast wsp pobiera numery poczatkowego i koncowego punktu wektora ( z listy wsp pkt xy)
         xwekt = self.xy[j, 0] - self.xy[i, 0]
         ywekt = self.xy[j, 1] - self.xy[i, 1]
         return xwekt, ywekt
 
-    def wsp_wekt_z_wsp(self, w1, w2):  # zamiast wsp pobiera numery poczatkowego i koncowego punktu wektora
-        xwekt = w1[0] - w2[0]
+    def wsp_wekt_z_wsp(self, w1, w2):  # pobiera dwa pkt w1[x1,y1],  w2[x2,y2]
+        xwekt = w1[0] - w2[0]       #roznica wsp x z pktow w1 i w2
         ywekt = w1[1] - w2[1]
         return xwekt, ywekt
 
@@ -103,6 +104,14 @@ class Mesh:
         nx = xn / dlw
         ny = yn / dlw
         return nx, ny
+
+    def edge_normal(self, i):           # i indeks krawedzi
+        def_edge = self.list_kr[i, :2]          # wyciagam numery (indeksy) punktow z ktorch sklada sie dana krawedz  dwa pierwsze elementy wiersza
+        #print i
+        #print self.xy[def_edge[1]], self.xy[def_edge[0]]
+        wektor = self.xy[def_edge[1]] - self.xy[def_edge[0]]
+
+        return self.wektor_norm(*wektor)           # pierwszy z wektor to pierwsza zmienna itd
 
     def __lista_krawedzi__(self):
 

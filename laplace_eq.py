@@ -6,28 +6,28 @@ from interpolacja import *
 
 DlPrzX = 1.; DlPrzY = 1.
 
-n = 10       # ilosc podzialow
+n = 10          # ilosc podzialow
 
 dx = DlPrzX/n
 dy = DlPrzY/n
 
 x0 = 0; y0 = 0; d1 = 0
 
-#   wsp_wezl, cells, bounduary = siatka_regularna_prost(n, dx, dy, x0, y0)  czyli metoda siatka_regularna_prost zwroci to co Mesh potrzebuje czyli nodes, cells, boundary
+# wsp_wezl, cells, bounduary = siatka_regularna_prost(n, dx, dy, x0, y0)  czyli metoda siatka_regularna_prost zwroci to co Mesh potrzebuje czyli nodes, cells, boundary
 
 node_c, cells, bound = siatka_regularna_prost(n, dx, dy, x0, y0)
 
 mesh = Mesh(node_c, cells, bound)          # 1. tworzy obiekt mesh klasy Mesh, 2. generujemy siatke dla tego obiektu funkcja siatka_reg...
 
-T = SurfField(mesh)    # tworzy obiekt klasy SurfField , pobierajacy obirkt mesh klasy Mesh ( na tej siatce ma tworzyc i przechowywac rozwiazanie (wartosci))
+T = SurfField(mesh)    # tworzy obiekt klasy SurfField, pobierajacy obirkt mesh klasy Mesh ( na tej siatce ma tworzyc i przechowywac rozwiazanie (wartosci))
 
 
-T.data = 0 # [:] do listy przypisze wartosc 5, samo = przypisze inny obiekt   przypisuje wszedzie wartosc 5
+T.data = 0          # [:] do listy przypisze wartosc 0, samo = przypisze inny obiekt   przypisuje wszedzie wartosc 0
 
 Tdir = 1
 
 # neuman    def __init__(self, mesh, bId, derivativeValue )
-T.setBoundaryCondition(Neuman(mesh, 0, -5))     #  zero odpowiada zerowej krawedzi pobiera obiekt klasy Dirichlet (wywoluje go i tworzy)
+T.setBoundaryCondition(Neuman(mesh, 0, -5))         # zero odpowiada zerowej krawedzi pobiera obiekt klasy Dirichlet (wywoluje go i tworzy)
 #T.setBoundaryCondition(Dirichlet(mesh, 0, 10))
 
 #T.setBoundaryCondition(Neuman(mesh, 1, -10))
@@ -45,7 +45,6 @@ T.setBoundaryCondition(Dirichlet(mesh, 3, Tdir))
 M, F = laplace(T)    # po prostu ukladanie macierzy i wektora prawych stron
 
 T.apply_bc(M, F)    # dodawanie warunkow brzegowych do macierzy i wektora PS funkcja pochodzi z klasy T czyli SurfField
-
 
 A = solve(M, F)         #  rozw uklad rownan
 
