@@ -98,7 +98,43 @@ def laplace(field):
 
     rhs = np.zeros((n, 1))
 
+    field.apply_bc_diffusiveFlux(macierz_K_e, rhs)
+
     return macierz_K_e, rhs
+
+
+
+
+    #   div to adwekcja
+def div(phi, field):           # phi to pole predkosci na scianach skalarne bo przemnozone skalarnie razy wektor normalny (ro * wektor predkosci * wekt normalny) = phi
+    n, lista_kra = field.mesh.n, field.mesh.list_kr    # lista kr: [ 1 0 0 1]  = [pkt1 pkt2 wl sasiad]
+    D = np.array([[0.] * n] * n)
+    Rhs = np.zeros((n,1))
+    mesh = field.mesh
+
+    for i,k in enumerate(mesh.list_kr):
+        w, s = k[2:]
+        edgeLen = np.array(mesh.edge_vector(i))
+        edgeLen = np.sqrt(edgeLen.dot(edgeLen))
+        phiEdge = phi[i]
+
+        # if s < 0:
+        #     if phiEdge > 0:
+        #         D[w, w] += phiEdge*edgeLen
+        #     else:
+        #         pass
+        #         #Cos to wektora prawych stron
+        # else:
+        if phiEdge > 0:
+            D[w, w] += phiEdge*edgeLen
+            D[s, w] -= phiEdge*edgeLen
+        else:
+            D[w, s] -= phiEdge * edgeLen
+            D[s, s] += phiEdge * edgeLen
+
+    field.apply_bc_convectiveFlux(D, Rhs, phi)
+
+    return D, Rhs
 
 
 def WB_dir_T1(lista_kr, Td, wsp_wezl, macierz_K_e, rhs):
@@ -115,19 +151,12 @@ def WB_dir_T1(lista_kr, Td, wsp_wezl, macierz_K_e, rhs):
 
 
 
-# print np.allclose(np.dot(macierz_K_e, T), wektor_pr_str)
-# print T[:n], len(T)
-# print macierz_K_e[:n,:]
-# print wektor_pr_str[:n]
-# print wektor_pr_str
-
-
 # wydruk konturow temperatur
 # Wyswietl rozw. w wezlach interpolujemy otrzymane wyniki na srodki komorek PO INTERPOLACJI
 
 from interpolacja import inter
 
-def draw_values_edges(wsp_wezl, cells, T, n, Tdirich, DlPrzX, DlPrzY):
+def draw_values_edges(wsp_wezl, cells, listak, T, n, Tdirich, DlPrzX, DlPrzY):
     '''
     :param  T jako pole temperatur z rozwiazania Tdirich WB dir
     '''
@@ -139,15 +168,27 @@ def draw_values_edges(wsp_wezl, cells, T, n, Tdirich, DlPrzX, DlPrzY):
             valOnEdge = varB[eLocal]
             node1 = T.mesh.list_kr[eGlobal, 0]
             node2 = T.mesh.list_kr[eGlobal, 1]
-            Tinter[ [node1, node2] ] = valOnEdge
+            Tinter[[node1, node2]] = 0
+
+
+    for bId, b in enumerate(T.mesh.boundaries):
+        varB = T.boundaries[bId]
+        for eLocal, eGlobal in enumerate(b):
+            valOnEdge = varB[eLocal]
+            node1 = T.mesh.list_kr[eGlobal, 0]
+            node2 = T.mesh.list_kr[eGlobal, 1]
+            Tinter[ [node1, node2] ] += valOnEdge/2
 
 
     # numpy linespace dzieli przedzial na n podzialow o rownym odstepie
     X, Y = np.meshgrid(np.linspace(0, DlPrzX, n+1), np.linspace(0, DlPrzY, n+1))
     T_new = Tinter.reshape((n+1, n+1))
     plt.figure()
-    cont = plt.contourf(X, Y, T_new)
+    cont = plt.contourf(X, Y, T_new, 14)
     plt.colorbar(cont)
+
+    draw_edges(wsp_wezl, listak)
+
     plt.show()
 
 
@@ -176,23 +217,29 @@ def index_draw_cell(cells, wsp_wezl):
 # rysuje krawedzie siatki
 def draw_edges(wsp_wezl, lista_kr):
 
-    plt.figure()
+    #plt.figure()
     for k in lista_kr:
         p1 = wsp_wezl[k[0]]
         p2 = wsp_wezl[k[1]]
         if k[3] == -1:
             plt.plot([p1[0], p2[0]], [p1[1], p2[1]], 'r-')
         else:
-            plt.plot([p1[0], p2[0]], [p1[1], p2[1]], 'b-')
+            plt.plot([p1[0], p2[0]], [p1[1], p2[1]], color="black")
 
-    plt.gca().set_xlim([-0.1, 1.1])           # granice rysowania od -0.1 do 1.1
-    plt.gca().set_ylim([-0.1, 1.1])
-    plt.show()
+
+    # plt.gca().set_xlim([-0.1, 1.1])           # granice rysowania od -0.1 do 1.1
+    # plt.gca().set_ylim([-0.1, 1.1])
+    # plt.show()
 
 
 
 # for id, cell in enumerate(k_ids):
 #     print id, cell
 
+# print np.allclose(np.dot(macierz_K_e, T), wektor_pr_str)
+# print T[:n], len(T)
+# print macierz_K_e[:n,:]
+# print wektor_pr_str[:n]
+# print wektor_pr_str
 
 

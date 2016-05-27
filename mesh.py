@@ -70,8 +70,8 @@ class Mesh:
         return wekt_wsp_dlw
 
     def edge_vector(self, edgeId):
-        p1 = self.xy[self.def_edges[edgeId, 0], :]
-        p2 = self.xy[self.def_edges[edgeId, 1], :]
+        p1 = self.xy[self.list_kr[edgeId, 0], :]
+        p2 = self.xy[self.list_kr[edgeId, 1], :]
         dp = p2 - p1
         return [dp[1], -dp[0]]
 
@@ -116,21 +116,21 @@ class Mesh:
     def __lista_krawedzi__(self):
 
         s = 0
-        for cell in self.cells:
-           s += len(cell) #zlicza ile w kolejnych komurkach pkt (krawedzi) (liczy ile jest w wierszu [1 2 12 11] czyli 4 krawedzie
+        for cell in self.cells:   # [ 1 0 12 11]  = [kr1 kr2 kr3 kr4]
+           s += len(cell)       #zlicza ile w kolejnych komurkach pkt (krawedzi) (liczy ile jest w wierszu [1 2 12 11] czyli 4 krawedzie
 
         lista_kr = np.array([[0] * 4] * s)
 
         for i, cell in enumerate(self.cells):
 
-            ilosc = lista_kr.shape[1]
+            ilosc = lista_kr.shape[1]    # ilosc kolumn ( w cells ilosc kolumn odp ilosci krawedzi )
             for licz in range(0, ilosc, 1):
 
                 if licz < ilosc -1:
                     lista_kr[i * ilosc + licz] = [cell[licz], cell[licz + 1], i, -1]
                 elif licz == ilosc -1:
-                    lista_kr[i * ilosc + licz ] = [cell[licz], cell[licz - (ilosc - 1)], i, -1]
-        return lista_kr
+                    lista_kr[i * ilosc + licz] = [cell[licz], cell[licz - (ilosc - 1)], i, -1]
+        return lista_kr     # [ 1 0 0 1]  = [pkt1 pkt2 wl sasiad]
 
     def __wlasciciel_sasiad__(self, lista_krawedzi):
         # do k_ids przypisuje dwie kolumny ze wszystkich wierszy czyli numery wezlow tworzacych krawedzie
