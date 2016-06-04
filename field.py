@@ -28,7 +28,7 @@ class EdgeField:          # pole dla krawedzi zawiera inf co na krawedziach w ko
         '''
         pass
 
-    def insertConvectiveFlux(self, phi, EqMat, Rhs):
+    def insertConvectiveFlux(self, phi, EqMat, Rhs):            # inne dla Neuman inne dla Dirichet
         pass
 
 
@@ -213,17 +213,15 @@ class SurfField:              # to jest po prostu field z wartosciami rozwiazani
 
 
 def generate_phi(mesh):
-    vals = np.zeros(len(mesh.list_kr))
-    for i,kraw in enumerate(mesh.list_kr):
-        #n1, n2 = kraw[:2]
-        p1, p2 = mesh.xy[kraw[:2]]
-        pc = (p1 + p2)/2 - [0.5, 0.5]
+    vals = np.zeros(len(mesh.list_kr))     # lista wartosci 0 i dl odpowiadajacej ilosci krawedzi
+    for i,kraw in enumerate(mesh.list_kr):      # dla kazdej krawedzi
+        p1, p2 = mesh.xy[kraw[:2]]           # zczytaj punkty krawedzi  (dwie pierwsze liczby z list_kr) i pobierz ich wsp x , y
+        pc = (p1 + p2)/2. - [0.5, 0.5]
         r = np.square(pc.dot(pc))
-        tan = np.array([-pc[1], pc[0]])
-        tan = tan / np.sqrt(tan.dot(tan))
-        U = tan*r*60
-        vals[i] = U.dot(mesh.edge_normal(i))
-
+        tan = np.array([-pc[1], pc[0]])     # normalna do pc[x, y] = pcn[-y, x]
+        tan = tan / np.sqrt(tan.dot(tan))       # kierunek normalej
+        U = tan*r*140      # razy wsp.
+        vals[i] = U.dot(mesh.edge_normal(i))    # rzut na normalna do konkretnej krawedzi
     return vals
 #
 #

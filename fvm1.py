@@ -108,29 +108,21 @@ def laplace(field):
     #   div to adwekcja
 def div(phi, field):           # phi to pole predkosci na scianach skalarne bo przemnozone skalarnie razy wektor normalny (ro * wektor predkosci * wekt normalny) = phi
     n, lista_kra = field.mesh.n, field.mesh.list_kr    # lista kr: [ 1 0 0 1]  = [pkt1 pkt2 wl sasiad]
-    D = np.array([[0.] * n] * n)
-    Rhs = np.zeros((n,1))
+    D = np.array([[0.] * n] * n)        # tablica 2D nxn
+    Rhs = np.zeros((n,1))   # wektor prawych stron  zainicjalizowny zerami
     mesh = field.mesh
 
-    for i,k in enumerate(mesh.list_kr):
-        w, s = k[2:]
-        edgeLen = np.array(mesh.edge_vector(i))
-        edgeLen = np.sqrt(edgeLen.dot(edgeLen))
-        phiEdge = phi[i]
-
-        # if s < 0:
-        #     if phiEdge > 0:
-        #         D[w, w] += phiEdge*edgeLen
-        #     else:
-        #         pass
-        #         #Cos to wektora prawych stron
-        # else:
+    for i, k in enumerate(mesh.list_kr):       # i - numer  k - krawedz   Wszystko powtarzane dla kazdej krawedzi
+        w, s = k[2:]            # zczytuje wlascicel, sasiad danej krawedzi i
+        edgeLen = np.array(mesh.edge_vector(i))         #liczy wektor krawedziowy i
+        edgeLen = np.sqrt(edgeLen.dot(edgeLen))         #liczy dlugosc krawedzi dla konkretnego wektora krawedziowego
+        phiEdge = phi[i]        # pobiera wartosci predkosci z macierzy phi[dla elementu i]
         if phiEdge > 0:
-            D[w, w] += phiEdge*edgeLen
-            D[s, w] -= phiEdge*edgeLen
+            D[w, w] += phiEdge * edgeLen            # dodaj do wlascicela
+            D[s, w] -= phiEdge * edgeLen            # dodaj w innym wierszu do sasiada
         else:
             D[w, s] -= phiEdge * edgeLen
-            D[s, s] += phiEdge * edgeLen
+            D[s, s] += phiEdge * edgeLen            # dodaj do sasiada
 
     field.apply_bc_convectiveFlux(D, Rhs, phi)
 
