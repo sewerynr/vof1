@@ -10,8 +10,6 @@ def wspolczynnik_d(f, c, k1, k2):
     a = np.dot(CF, k21) / np.dot(CF, CF)
     return a
 
-def wspolczynnik_a(f, c, k1, k2):
-    return 0
 
 def siatka_regularna_prost(n, dx, dy, x0, y0):
     node_coordinates = np.array([[0.] * 2] * (n + 1) ** 2)
@@ -25,6 +23,8 @@ def siatka_regularna_prost(n, dx, dy, x0, y0):
         for j in range(n):
             cid = i * n + j
             cells[cid, :] = [i * (n + 1) + j, i * (n + 1) + j + 1, (i + 1) * (n + 1) + 1 + j, (i + 1) * (n + 1) + j]       # [wpisuje w wiersz o nr cid, : czyli  w kazda kolumne] odp w miejsce 1,2,3,4
+
+
 
     boundaries_BC = np.array([[[0]*2]*n]*4)       # jedna kolumna i 4 wiersze bo cztery brzegi (w kolumnie nowa lista tyle wierszy ile krawedzi i tyle kolumn ile pkt tworzacych krawedz
     temp = np.array([[[0] * 1] * (n+1)])
@@ -67,11 +67,12 @@ def siatka_regularna_prost(n, dx, dy, x0, y0):
        boundaries_BC[3, i, 0] = temp[0, i]
        boundaries_BC[3, i, 1] = temp[0, i + 1]
 
-    # print boundaries_BC
+    # # print boundaries_BC
 
     return node_coordinates, cells, boundaries_BC
     # Utworzenie komorek na podstawie wezlow (zbior nr wezlow budujacych kom.).
     # Definicja 1 komorki: [ nr wz1, nr wz2, nr wz3, nr wz4 ]
+
 
 def laplace(field):
     n, lista_kra = field.mesh.n, field.mesh.list_kr

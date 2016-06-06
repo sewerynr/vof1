@@ -8,6 +8,7 @@ class Mesh:
         self.cells = cells
         self.n = cells.shape[0]    # shape returns the dimension of array. shape[0] daje ilosc wierszy shape[1] kolumn
 
+        # self.cell_centers = cell_centers
         # self.__wsp_dl__ = None  # tez do (*****)
         self.wsp_dl = self.__wektor_wsp_idl__()         # wywolaj __prywatna metode__ i oddaj tablice wsp.dl
 
@@ -15,7 +16,7 @@ class Mesh:
         self.list_kr = self.__wlasciciel_sasiad__(self.list_kr)
         self.boundaries_points = boundaries
         self.boundaries = self.__bound_to_edge_bound__(boundaries)
-
+        self.cell_centers = self.__cell_center__()
         # self.boundaries = boundaries
 
     #gdy chcemy wywolac prywatna funkcje ale dopiero gdy ktos o nia zapyta (dostanie wtedy macierz) (*****)
@@ -25,6 +26,15 @@ class Mesh:
     #         self.__wsp_dl__ = self.__wektor_wsp_idl__()
     #     return self.__wsp_dl__
 
+    def __cell_center__(self):
+
+        cc = np.array([[0.] * 2] * (self.n))  # cell centers _ srodki komorek
+        for i, cell in enumerate(self.cells):
+            c1, c2, c3, c4 = self.cells[i]
+            cc[i][0] = (self.xy[c1][0] + self.xy[c2][0] + self.xy[c3][0] + self.xy[c4][0]) / len(self.cells[i])  # srodki komomorek pobiera numery wezlow z cells i wczytuje wsp z wsp_wezl
+            # print len(cells[i])
+            cc[i][1] = (self.xy[c1][1] + self.xy[c2][1] + self.xy[c3][1] + self.xy[c4][1]) / len(self.cells[i])  # srodki komomorek pobiera numery wezlow z cells i wczytuje wsp z wsp_wezl
+        return cc
 
     def __bound_to_edge_bound__(self, boundaries):
         bond_to_edge = np.array( [ [0]*len(b) for b in boundaries ] )

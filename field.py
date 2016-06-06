@@ -138,9 +138,9 @@ class Neuman(EdgeField):            # klasa dla kazdej krawedzi o warunku neuman
 
             n = self.mesh.edge_normal(id_edge)        # normalny do wektora (krawedzi WB) ale o jego dlugosci (trzeba pobrac numer pod krawedzi )
             n = n / np.linalg.norm(n)           # wersor normalny (podzielony przez swoja dlugosc)
-            sr_pod_krawBC = sum([self.mesh.xy[nid] for nid in self.mesh.list_kr[id_edge,:2]])/2
+            sr_pod_krawBC = sum([self.mesh.xy[nid] for nid in self.mesh.list_kr[id_edge, :2]])/2
             e = sr_pod_krawBC - cc1
-            ds = np.dot(n, e)    # wektor od srodka komurki do srodka sciany
+            ds = np.dot(n, e)    # wektor od srodka komorki do srodka sciany
             elenSq = np.dot(e, e)
             flux = self.deriv
             Tsr = self.sol[c]
@@ -171,8 +171,6 @@ class symmetry(Neuman):             #  # klasa dla kazdej krawedzi o warunku neu
         Neuman.__init__(self, mesh, bId, np.array([0.] * len(mesh.boundaries[bId])))    # konstruktor pierwotnej klasy po ktorej dziedziczy, derrevativeValue przyjmuje teraz liste o wartosicach 0 i rozmiarze dlugosci mesh.boundaries
         self.id = bId        # zapisuje numer krawedzi pod oznaczeniem id
         self.mesh = mesh
-
-
 
 
 
@@ -211,23 +209,44 @@ class SurfField:              # to jest po prostu field z wartosciami rozwiazani
             b.insertConvectiveFlux(EqMat, Rhs, phi)  # jesli neuman to wywola z klasy neuman jesil dirichlet to z dirichlet zalezy czym jest b
 
 
+# def generate_phi(mesh):           #po krawedziach
+#     vals = np.zeros(len(mesh.list_kr))     # lista wartosci 0 i dl odpowiadajacej ilosci krawedzi
+#     for i,kraw in enumerate(mesh.list_kr):      # dla kazdej krawedzi
+#         p1, p2 = mesh.xy[kraw[:2]]           # zczytaj punkty krawedzi  (dwie pierwsze liczby z list_kr) i pobierz ich wsp x , y
+#         pc = (p1 + p2)/2. - [0.5, 0.5]
+#         r = np.square(pc.dot(pc))
+#         tan = np.array([-pc[1], pc[0]])     # normalna do pc[x, y] = pcn[-y, x]
+#         tan = tan / np.sqrt(tan.dot(tan))       # kierunek normalej
+#         U = tan*r*140      # razy wsp.
+#         vals[i] = U.dot(mesh.edge_normal(i))    # rzut na normalna do konkretnej krawedzi
+#     return vals
+
 
 def generate_phi(mesh):
-    vals = np.zeros(len(mesh.list_kr))     # lista wartosci 0 i dl odpowiadajacej ilosci krawedzi
-    for i,kraw in enumerate(mesh.list_kr):      # dla kazdej krawedzi
-        p1, p2 = mesh.xy[kraw[:2]]           # zczytaj punkty krawedzi  (dwie pierwsze liczby z list_kr) i pobierz ich wsp x , y
-        pc = (p1 + p2)/2. - [0.5, 0.5]
+    vals_return = np.zeros(len(mesh.cells))
+    vals = np.array([[0.] * 2] * len(mesh.cells))     # lista wartosci 0 i dl odpowiadajacej ilosci krawedzi
+
+    for i, cell in enumerate(mesh.cells):      # dla kazdej krawedzi
+        pc = mesh.cell_centers[i] - [0.5, 0.5]
         r = np.square(pc.dot(pc))
         tan = np.array([-pc[1], pc[0]])     # normalna do pc[x, y] = pcn[-y, x]
         tan = tan / np.sqrt(tan.dot(tan))       # kierunek normalej
-        U = tan*r*140      # razy wsp.
-        vals[i] = U.dot(mesh.edge_normal(i))    # rzut na normalna do konkretnej krawedzi
-    return vals
+        U = tan * r * 1  # razy wsp.
+        print U
+        vals[i] = U  # wektor predkosci w srodkach komorek
+
+    # trzeba wyinterpolowac predkosci na scianki
+    for i, kraw in enumerate(mesh.list_kr):
+        # zczytuje z listy_kr wlasciciela i sasiada i pobieram predkosci w ich srodkach komorek
+        vals_return[i] = vals[i].dot(mesh.edge_normal(i))    # rzut na normalna do konkretnej krawedzi
+
+
+    return vals_return
+
 #
 #
 # def values(obiekt):
 #     return obiekt._sol
-
 
 
 # class OpenFoamWriter:

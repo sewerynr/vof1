@@ -6,7 +6,7 @@ from interpolacja import *
 
 DlPrzX = 1.; DlPrzY = 1.
 
-n = 40          # ilosc podzialow
+n = 10          # ilosc podzialow
 
 dx = DlPrzX/n
 dy = DlPrzY/n
@@ -22,6 +22,7 @@ mesh = Mesh(node_c, cells, bound)          # 1. tworzy obiekt mesh klasy Mesh, 2
 
 T = SurfField(mesh)    # tworzy obiekt klasy SurfField, pobierajacy obirkt mesh klasy Mesh ( na tej siatce ma tworzyc i przechowywac rozwiazanie (wartosci))
 
+#print mesh.cell_centers
 
 T.data = 0          # [:] do listy przypisze wartosc 0, samo = przypisze inny obiekt   przypisuje wszedzie wartosc 0
 
@@ -52,8 +53,8 @@ Mc, Fc = div(generate_phi(mesh), T)    # ukladanie macierzy i wektora prawych st
 
 M = M + Mc
 pkt1 = n/2 + n*n/2  # pkt srodek
-pkt2 = n/2 + n*5  # srodek 4 wiersze od spodu
-pkt3 = n/2 + n*(n-6)  # srodek 4 wiersze od gory
+pkt2 = n/2 + n*4  # srodek 4 wiersze od spodu
+pkt3 = n/2 + n*(n-4)  # srodek 4 wiersze od gory
 
 F[pkt2] = -2
 F[pkt3] = -2
