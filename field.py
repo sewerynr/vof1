@@ -223,7 +223,7 @@ class SurfField:              # to jest po prostu field z wartosciami rozwiazani
 
 
 def generate_phi(mesh):
-    vals_return = np.zeros(len(mesh.cells))
+    vals_return = np.zeros(len(mesh.list_kr))
     vals = np.array([[0.] * 2] * len(mesh.cells))     # lista wartosci 0 i dl odpowiadajacej ilosci krawedzi
 
     for i, cell in enumerate(mesh.cells):      # dla kazdej krawedzi
@@ -231,15 +231,21 @@ def generate_phi(mesh):
         r = np.square(pc.dot(pc))
         tan = np.array([-pc[1], pc[0]])     # normalna do pc[x, y] = pcn[-y, x]
         tan = tan / np.sqrt(tan.dot(tan))       # kierunek normalej
-        U = tan * r * 1  # razy wsp.
-        print U
+        U = tan * r * 100  # razy wsp.
+        #print len(mesh.list_kr)
         vals[i] = U  # wektor predkosci w srodkach komorek
 
     # trzeba wyinterpolowac predkosci na scianki
-    for i, kraw in enumerate(mesh.list_kr):
-        # zczytuje z listy_kr wlasciciela i sasiada i pobieram predkosci w ich srodkach komorek
-        vals_return[i] = vals[i].dot(mesh.edge_normal(i))    # rzut na normalna do konkretnej krawedzi
 
+    # pewnie trzeba warunek na krawedzie brzegowe
+    for i, kraw in enumerate(mesh.list_kr):
+        # zczytuje z listy_kr wlasciciela i sasiada i pobieram predkosci w ich srodkach komorek jako wektor [x, y]
+        vwl = vals[kraw[2]]
+        vsas = vals[kraw[3]]
+
+        v =  vwl/2 + vsas/2  # przypadek szczegolny
+        vals_return[i] = v.dot(mesh.edge_normal(i))    # rzut na normalna do konkretnej krawedzi
+        #print vals_return
 
     return vals_return
 
