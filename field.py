@@ -225,7 +225,7 @@ class SurfField:              # to jest po prostu field z wartosciami rozwiazani
 def generate_phi(mesh):
     vals_return = np.zeros(len(mesh.list_kr))
     vals = np.array([[0.] * 2] * len(mesh.cells))     # lista wartosci 0 i dl odpowiadajacej ilosci krawedzi
-
+    # generuje predkosci w srodkach komorek
     for i, cell in enumerate(mesh.cells):      # dla kazdej krawedzi
         pc = mesh.cell_centers[i] - [0.5, 0.5]
         r = np.square(pc.dot(pc))
@@ -237,16 +237,32 @@ def generate_phi(mesh):
 
     # trzeba wyinterpolowac predkosci na scianki
 
-    # pewnie trzeba warunek na krawedzie brzegowe
+    # trzeba warunek na krawedzie brzegowe
     for i, kraw in enumerate(mesh.list_kr):
-        # zczytuje z listy_kr wlasciciela i sasiada i pobieram predkosci w ich srodkach komorek jako wektor [x, y]
-        vwl = vals[kraw[2]]
-        vsas = vals[kraw[3]]
+        if kraw[3] > 0:    # jesli ma sasiada
 
-        v =  vwl/2 + vsas/2  # przypadek szczegolny
-        vals_return[i] = v.dot(mesh.edge_normal(i))    # rzut na normalna do konkretnej krawedzi
-        #print vals_return
+            # przypadek szczegolny odl do srodkow krawedzi nie przeciec wektorow
+            # zczytuje z listy_kr wlasciciela i sasiada i pobieram predkosci w ich srodkach komorek jako wektor [x, y]
+            vwl = vals[kraw[2]]
+            vsas = vals[kraw[3]]
+            #wsp sr kom wl: mesh.cell_centers[kraw[2]]
+            dl = mesh.wsp_wekt_z_wsp(mesh.cell_centers[kraw[3]], mesh.cell_centers[kraw[2]])
+            dl = mesh.dl_wekt(dl[0], dl[1])    # dlugosc miedzy sr komurek
 
+            dlc = mesh.wsp_wekt_z_wsp(mesh.cell_centers[kraw[2]], (mesh.xy[kraw[0]] + mesh.xy[kraw[1]])/2)
+            dlc = mesh.dl_wekt(dlc[0],dlc[1])
+
+            dlf = mesh.wsp_wekt_z_wsp(mesh.cell_centers[kraw[3]], (mesh.xy[kraw[0]] + mesh.xy[kraw[1]]) / 2)
+            dlf = mesh.dl_wekt(dlf[0], dlf[1])
+
+            v = vwl*(dlc/dl) + vsas*(dlf/dl)  # przypadek szczegolny
+            vals_return[i] = v.dot(mesh.edge_normal(i))    # rzut na normalna do konkretnej krawedzi
+            #print vals_return[i]
+        else:           # gdy krawedz brzegowa
+            #vals_return[i] = 0.
+            pass   # vals_return[i] = 0. nie trzeba bo zainicjalizowana zerami
+
+    #print vals_return
     return vals_return
 
 #

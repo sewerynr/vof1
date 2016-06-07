@@ -6,7 +6,7 @@ from interpolacja import *
 
 DlPrzX = 1.; DlPrzY = 1.
 
-n = 30          # ilosc podzialow
+n = 40          # ilosc podzialow
 
 dx = DlPrzX/n
 dy = DlPrzY/n
