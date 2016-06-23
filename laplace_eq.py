@@ -4,9 +4,12 @@ from fvm1 import *
 from field import *
 from interpolacja import *
 
+ro = 1
+k = 1
+
 DlPrzX = 1.; DlPrzY = 1.
 
-n = 40          # ilosc podzialow
+n = 10          # ilosc podzialow
 
 dx = DlPrzX/n
 dy = DlPrzY/n
@@ -24,10 +27,11 @@ T = SurfField(mesh)    # tworzy obiekt klasy SurfField, pobierajacy obirkt mesh 
 
 #print mesh.cell_centers
 
-T.data = 0          # [:] do listy przypisze wartosc 0, samo = przypisze inny obiekt   przypisuje wszedzie wartosc 0
+T.data[:] = 0.          # [:] do listy przypisze wartosc 0, samo = przypisze inny obiekt   przypisuje wszedzie wartosc 0
 
-Tdir = 1
-TdirWB = 1
+
+Tdir = 1.
+TdirWB = 1.
 
 # neuman    def __init__(self, mesh, bId, derivativeValue )
 #T.setBoundaryCondition(Neuman(mesh, 0, 0))         # zero odpowiada zerowej krawedzi pobiera obiekt klasy Dirichlet (wywoluje go i tworzy)
@@ -52,21 +56,25 @@ M, F = laplace(T)    # ukladanie macierzy i wektora prawych stron laplace
 Mc, Fc = div(generate_phi(mesh), T)    # ukladanie macierzy i wektora prawych stron, dostaje D i Rhs z div
 
 M = M + Mc
+
+#M = M*0.01 + Mc          ##dyfuzja nie wazna maly wsp
+
 pkt1 = n/2 + n*n/2  # pkt srodek
 pkt2 = n/2 + n*4  # srodek 4 wiersze od spodu
 pkt3 = n/2 + n*(n-4)  # srodek 4 wiersze od gory
 
 F[pkt2] = -2
 F[pkt3] = -2
+
 F = F + Fc
+#F = F*0.01 + Fc            #dyfuzja nie wazna maly wsp
 
 A = solve(M, F)         #  rozw uklad rownan
 
-
 T.setValues(A)          # pole temp do aktualizacji wartosci temp w WB Neumana
+#print T.data.shape[0]
 
-# print T.data
-# print A
+#print A
 
 draw_values_edges(mesh.xy, mesh.cells, mesh.list_kr, T, n, DlPrzX, DlPrzY, Tdir)
 # draw_edges(mesh.xy, mesh.list_kr)

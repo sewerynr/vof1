@@ -1,3 +1,9 @@
+# funkcje wlaczajac:
+# generacje prostokatnej siatki
+# obliczanie wsp dla dyfuzji
+# obliczanie wsp dla adwekcji
+# rysowanie
+
 import numpy as np
 import matplotlib.pyplot as plt
 from mesh import *
@@ -12,7 +18,7 @@ def wspolczynnik_d(f, c, k1, k2):
 
 
 def siatka_regularna_prost(n, dx, dy, x0, y0):
-    node_coordinates = np.array([[0.] * 2] * (n + 1) ** 2)
+    node_coordinates = np.array([[0.] * 2] * (n + 1) ** 2)      # wpolrzedne punktow
     for i in range(0, n + 1, 1):
         for j in range(0, n + 1, 1):
             index = i * (n + 1) + j
@@ -29,7 +35,7 @@ def siatka_regularna_prost(n, dx, dy, x0, y0):
     boundaries_BC = np.array([[[0]*2]*n]*4)       # jedna kolumna i 4 wiersze bo cztery brzegi (w kolumnie nowa lista tyle wierszy ile krawedzi i tyle kolumn ile pkt tworzacych krawedz
     temp = np.array([[[0] * 1] * (n+1)])
 
-    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  ??????????????????????????  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!_________________________!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     licznik = 0
     for id, wspw in enumerate(node_coordinates):
@@ -128,19 +134,6 @@ def div(phi, field):           # phi to pole predkosci na scianach skalarne bo p
     field.apply_bc_convectiveFlux(D, Rhs, phi)
 
     return D, Rhs
-
-
-def WB_dir_T1(lista_kr, Td, wsp_wezl, macierz_K_e, rhs):
-    # warunki brzegowe 1) jako T w centrum komorki wiec po prostu w macierz K wpisuje w miejsce odp sr. kom 1 a w wektor pr stron = danej temp
-    for kraw in lista_kr:
-        if kraw[3] == -1:
-            c = kraw[2]         #indeks komorki wlascicela
-            macierz_K_e[c, :] = 0             # wakazuje na wiersz czyli na komorke i zapisuje we wszystkich elementach wiersza 0
-            macierz_K_e[c, c] = 1             # na przekatnej wpisuje 1
-            if wsp_wezl[kraw[0], 1] == 0 and wsp_wezl[kraw[1], 1] == 0:          # spr wspl obu wezlow krawedzi czy sa rowne zero po y
-                rhs[c] = Td
-
-    return rhs
 
 
 

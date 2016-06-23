@@ -1,6 +1,12 @@
 import numpy as np
 
 
+def iterExtra(tab):     #  bierze wiersz z cells np. [0 1 11 12]  i dodaje do niego na koncu pierwszy element [0 1 11 12 0]
+    for i in tab:
+        yield i
+    yield tab[0]
+
+
 class Mesh:
     """obiekt_operujcy_na_danych_punktach_siatki"""
     def __init__(self, nodes, cells, boundaries):
@@ -17,6 +23,7 @@ class Mesh:
         self.boundaries_points = boundaries
         self.boundaries = self.__bound_to_edge_bound__(boundaries)
         self.cell_centers = self.__cell_center__()
+        self.cell_area = self.__cell_area__()
         # self.boundaries = boundaries
 
     #gdy chcemy wywolac prywatna funkcje ale dopiero gdy ktos o nia zapyta (dostanie wtedy macierz) (*****)
@@ -46,6 +53,29 @@ class Mesh:
                         bond_to_edge[idBoundry][idBEdge] = idEdge
         #print bond_to_edge
         return bond_to_edge
+
+
+    def __cell_area__(self):
+        area = np.zeros(self.n)
+        for i in range(self.n):         # dla komorki,
+            punkty = []
+
+            for node in iterExtra(self.cells[i]):   #podaje kolejne punkty z czytac punkty
+                pointk_xy = self.xy[node]      # joty punkt z komorki i
+                punkty.append(pointk_xy[0])      # 0 2 4 6... wsp X
+                punkty.append(pointk_xy[1])     # 1 3 5 7... wsp y
+            #print punkty
+            area[i] = self.area_from_coordinates(punkty)
+
+        return area
+
+    def area_from_coordinates(self, coord_list):
+        area = 0
+        n = len(coord_list)
+        for i in range(0, n - 2, 2):
+            area += 0.5*(coord_list[i+2]+coord_list[i])*(coord_list[i+3]-coord_list[i+1])
+        print area
+        return area
 
 
     def __wektor_wsp_idl__(self):
@@ -78,6 +108,7 @@ class Mesh:
             wekt_wsp_dlw[l, 13] = self.sr_komX(self.xy[self.cells[l, 1], 1], self.xy[self.cells[l, 0], 1], self.xy[self.cells[l, 3], 1], self.xy[self.cells[l, 2], 1])
 
         return wekt_wsp_dlw
+
 
     def edge_vector(self, edgeId):
         p1 = self.xy[self.list_kr[edgeId, 0], :]
@@ -115,7 +146,7 @@ class Mesh:
         ny = yn / dlw
         return nx, ny
 
-    def edge_normal(self, i):           # i indeks krawedzi
+    def edge_normal(self, i):           # i indeks krawedzi   liczy normalna do krawedzi zapisanej w liscie pod indeksem i
         def_edge = self.list_kr[i, :2]          # wyciagam numery (indeksy) punktow z ktorch sklada sie dana krawedz  dwa pierwsze elementy wiersza
         #print i
         #print self.xy[def_edge[1]], self.xy[def_edge[0]]

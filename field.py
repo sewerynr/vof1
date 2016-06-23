@@ -70,28 +70,28 @@ class Dirichlet(EdgeField):         # clasa dla kazdej krawedzi o warunku dirich
 
     def insertDiffusiveFlux(self, EqMat, Rhs):           # dopisuje do macierzy_K WB
         for i, _ in enumerate(self.mesh.boundaries[self.id]):
-            id_edge = self.mesh.boundaries[self.id, i]  # indeks krawedzi w WB
+            id_edge = self.mesh.boundaries[self.id, i]      # indeks krawedzi w WB
             field = self.field
             c = self.mesh.list_kr[id_edge, 2]      #pobierz wlascicela tej krawedzi
-            cc1 = sum(field.mesh.xy[field.mesh.cells[c], :]) / len(field.mesh.cells[c])  # srodek komorki
+            cc1 = sum(field.mesh.xy[field.mesh.cells[c], :]) / len(field.mesh.cells[c])      # srodek komorki
             nr_kr_1, nr_kr_2 = field.mesh.list_kr[id_edge, 0], field.mesh.list_kr[id_edge, 1]
-            ck3 = (field.mesh.xy[nr_kr_1, :] + field.mesh.xy[nr_kr_2, :]) / 2  # srodek scianki to samo co ck1 i ck2 ale od razu dla 2 wsp srodka sciany [x,y]
+            ck3 = (field.mesh.xy[nr_kr_1, :] + field.mesh.xy[nr_kr_2, :]) / 2    # srodek scianki to samo co ck1 i ck2 ale od razu dla 2 wsp srodka sciany [x,y]
             ad = wspolczynnik_d(ck3, cc1, field.mesh.xy[nr_kr_1, :], field.mesh.xy[nr_kr_2, :])    #pobiera wsp punkt z ktorych sklada sie krawedz
             EqMat[c, c] -= ad           #   do kom wlasciciela przypisuje wsp
-            Rhs[c] += -self.data[i] * ad
+            Rhs[c] += -self.data[i] * ad        # data odp komorce
 
     def insertConvectiveFlux(self, EqMat, Rhs, phi):
         for i, _ in enumerate(self.mesh.boundaries[self.id]):
-            id_edge = self.mesh.boundaries[self.id, i]  # indeks krawedzi w WB
-            field = self.field
-            c = self.mesh.list_kr[id_edge, 2]  # pobierz wlascicela tej krawedzi
+            id_edge = self.mesh.boundaries[self.id, i]    # indeks krawedzi w WB
+            #field = self.field
+            c = self.mesh.list_kr[id_edge, 2]    # pobierz wlascicela tej krawedzi
             edgeLen = np.array(self.mesh.edge_vector(i))
             edgeLen = np.sqrt(edgeLen.dot(edgeLen))
 
             phiEdge = phi[id_edge]
-            if phiEdge > 0:
+            if phiEdge > 0:     # gdy wylatuje
                 EqMat[c, c] += phiEdge*edgeLen
-            else:
+            else:       # gdy wlatuje
                 Tbrzeg = self.data[i]
                 Rhs[c] += Tbrzeg * phiEdge * edgeLen
 
@@ -129,7 +129,7 @@ class Neuman(EdgeField):            # klasa dla kazdej krawedzi o warunku neuman
             wekt_ws = self.field.mesh.wsp_wekt_z_wsp(self.field.mesh.xy[nr_kr_1, :], self.field.mesh.xy[nr_kr_2, :])
             Rhs[c] += self.deriv * self.field.mesh.dl_wekt(wekt_ws[0], wekt_ws[1])          #  dodac razy dlugosc
 
-
+    # do upadate
     def extrapolate(self):       # i to numer krawedzi w WB
         field = self.field
         for i, id_edge in enumerate(self.mesh.boundaries[self.id, :]):
@@ -148,6 +148,7 @@ class Neuman(EdgeField):            # klasa dla kazdej krawedzi o warunku neuman
             self.data[i] = Tbrzeg
             #print self.data[i], self.deriv, ds
 
+
     def insertConvectiveFlux(self, EqMat, Rhs, phi):
         for i, _ in enumerate(self.mesh.boundaries[self.id]):
             id_edge = self.mesh.boundaries[self.id, i]  # indeks krawedzi w WB
@@ -157,10 +158,10 @@ class Neuman(EdgeField):            # klasa dla kazdej krawedzi o warunku neuman
             edgeLen = np.sqrt(edgeLen.dot(edgeLen))
 
             phiEdge = phi[id_edge]
-            if phiEdge > 0:
+            if phiEdge > 0:     # wylatuje
                 EqMat[c, c] += phiEdge*edgeLen
-            else:
-                Tbrzeg = self.data[i]
+            else:           # gdy wlatuje
+                Tbrzeg = self.data[i]   #powinno byc z zewnetrznej krawedzi nie istniejacej bo wlatuje z zewnatrz
                 Rhs[c] += Tbrzeg * phiEdge * edgeLen
 
 
@@ -209,17 +210,20 @@ class SurfField:              # to jest po prostu field z wartosciami rozwiazani
             b.insertConvectiveFlux(EqMat, Rhs, phi)  # jesli neuman to wywola z klasy neuman jesil dirichlet to z dirichlet zalezy czym jest b
 
 
-# def generate_phi(mesh):           #po krawedziach
-#     vals = np.zeros(len(mesh.list_kr))     # lista wartosci 0 i dl odpowiadajacej ilosci krawedzi
-#     for i,kraw in enumerate(mesh.list_kr):      # dla kazdej krawedzi
-#         p1, p2 = mesh.xy[kraw[:2]]           # zczytaj punkty krawedzi  (dwie pierwsze liczby z list_kr) i pobierz ich wsp x , y
-#         pc = (p1 + p2)/2. - [0.5, 0.5]
-#         r = np.square(pc.dot(pc))
-#         tan = np.array([-pc[1], pc[0]])     # normalna do pc[x, y] = pcn[-y, x]
-#         tan = tan / np.sqrt(tan.dot(tan))       # kierunek normalej
-#         U = tan*r*140      # razy wsp.
-#         vals[i] = U.dot(mesh.edge_normal(i))    # rzut na normalna do konkretnej krawedzi
-#     return vals
+
+
+#  odrazu daje normalne skl pr na sciankach
+def generate_phi2(mesh):           #po krawedziach
+    vals = np.zeros(len(mesh.list_kr))     # lista wartosci 0 i dl odpowiadajacej ilosci krawedzi
+    for i,kraw in enumerate(mesh.list_kr):      # dla kazdej krawedzi
+        p1, p2 = mesh.xy[kraw[:2]]           # zczytaj punkty krawedzi  (dwie pierwsze liczby z list_kr) i pobierz ich wsp x , y
+        pc = (p1 + p2)/2. - [0.5, 0.5]
+        r = np.square(pc.dot(pc))
+        tan = np.array([-pc[1], pc[0]])     # normalna do pc[x, y] = pcn[-y, x]
+        tan = tan / np.sqrt(tan.dot(tan))       # kierunek normalej
+        U = tan*r*140      # razy wsp.
+        vals[i] = U.dot(mesh.edge_normal(i))    # rzut na normalna do konkretnej krawedzi
+    return vals
 
 
 def generate_phi(mesh):
@@ -231,7 +235,7 @@ def generate_phi(mesh):
         r = np.square(pc.dot(pc))
         tan = np.array([-pc[1], pc[0]])     # normalna do pc[x, y] = pcn[-y, x]
         tan = tan / np.sqrt(tan.dot(tan))       # kierunek normalej
-        U = tan * r * 100  # razy wsp.
+        U = tan * r * 140  # razy wsp.
         #print len(mesh.list_kr)
         vals[i] = U  # wektor predkosci w srodkach komorek
 
@@ -250,12 +254,12 @@ def generate_phi(mesh):
             dl = mesh.dl_wekt(dl[0], dl[1])    # dlugosc miedzy sr komurek
 
             dlc = mesh.wsp_wekt_z_wsp(mesh.cell_centers[kraw[2]], (mesh.xy[kraw[0]] + mesh.xy[kraw[1]])/2)
-            dlc = mesh.dl_wekt(dlc[0],dlc[1])
+            dlc = mesh.dl_wekt(dlc[0], dlc[1])
 
             dlf = mesh.wsp_wekt_z_wsp(mesh.cell_centers[kraw[3]], (mesh.xy[kraw[0]] + mesh.xy[kraw[1]]) / 2)
             dlf = mesh.dl_wekt(dlf[0], dlf[1])
 
-            v = vwl*(dlc/dl) + vsas*(dlf/dl)  # przypadek szczegolny
+            v = vwl*(dlf/dl) + vsas*(dlc/dl)  # przypadek szczegolny
             vals_return[i] = v.dot(mesh.edge_normal(i))    # rzut na normalna do konkretnej krawedzi
             #print vals_return[i]
         else:           # gdy krawedz brzegowa
