@@ -13,11 +13,8 @@ class Mesh:
         self.xy = nodes
         self.cells = cells
         self.n = cells.shape[0]    # shape returns the dimension of array. shape[0] daje ilosc wierszy shape[1] kolumn
-
-        # self.cell_centers = cell_centers
         # self.__wsp_dl__ = None  # tez do (*****)
         self.wsp_dl = self.__wektor_wsp_idl__()         # wywolaj __prywatna metode__ i oddaj tablice wsp.dl
-
         self.list_kr = self.__lista_krawedzi__()
         self.list_kr = self.__wlasciciel_sasiad__(self.list_kr)
         self.boundaries_points = boundaries
@@ -39,7 +36,6 @@ class Mesh:
         for i, cell in enumerate(self.cells):
             c1, c2, c3, c4 = self.cells[i]
             cc[i][0] = (self.xy[c1][0] + self.xy[c2][0] + self.xy[c3][0] + self.xy[c4][0]) / len(self.cells[i])  # srodki komomorek pobiera numery wezlow z cells i wczytuje wsp z wsp_wezl
-            # print len(cells[i])
             cc[i][1] = (self.xy[c1][1] + self.xy[c2][1] + self.xy[c3][1] + self.xy[c4][1]) / len(self.cells[i])  # srodki komomorek pobiera numery wezlow z cells i wczytuje wsp z wsp_wezl
         return cc
 
@@ -51,7 +47,6 @@ class Mesh:
                 for idEdge, edge in enumerate(self.list_kr):
                     if (edge_nodes[0] == edge[0] and edge_nodes[1] == edge[1]) or (edge_nodes[1] == edge[0] and edge_nodes[0] == edge[1]):
                         bond_to_edge[idBoundry][idBEdge] = idEdge
-        #print bond_to_edge
         return bond_to_edge
 
 
@@ -59,14 +54,12 @@ class Mesh:
         area = np.zeros(self.n)
         for i in range(self.n):         # dla komorki,
             punkty = []
-
             for node in iterExtra(self.cells[i]):   #podaje kolejne punkty z czytac punkty
                 pointk_xy = self.xy[node]      # joty punkt z komorki i
                 punkty.append(pointk_xy[0])      # 0 2 4 6... wsp X
                 punkty.append(pointk_xy[1])     # 1 3 5 7... wsp y
-            #print punkty
             area[i] = self.area_from_coordinates(punkty)
-
+        #print area
         return area
 
     def area_from_coordinates(self, coord_list):
@@ -74,9 +67,7 @@ class Mesh:
         n = len(coord_list)
         for i in range(0, n - 2, 2):
             area += 0.5*(coord_list[i+2]+coord_list[i])*(coord_list[i+3]-coord_list[i+1])
-        print area
         return area
-
 
     def __wektor_wsp_idl__(self):
 
@@ -108,7 +99,6 @@ class Mesh:
             wekt_wsp_dlw[l, 13] = self.sr_komX(self.xy[self.cells[l, 1], 1], self.xy[self.cells[l, 0], 1], self.xy[self.cells[l, 3], 1], self.xy[self.cells[l, 2], 1])
 
         return wekt_wsp_dlw
-
 
     def edge_vector(self, edgeId):
         p1 = self.xy[self.list_kr[edgeId, 0], :]
@@ -148,8 +138,6 @@ class Mesh:
 
     def edge_normal(self, i):           # i indeks krawedzi   liczy normalna do krawedzi zapisanej w liscie pod indeksem i
         def_edge = self.list_kr[i, :2]          # wyciagam numery (indeksy) punktow z ktorch sklada sie dana krawedz  dwa pierwsze elementy wiersza
-        #print i
-        #print self.xy[def_edge[1]], self.xy[def_edge[0]]
         wektor = self.xy[def_edge[1]] - self.xy[def_edge[0]]
 
         return self.wektor_norm(*wektor)           # pierwszy z wektor to pierwsza zmienna itd
@@ -184,7 +172,6 @@ class Mesh:
             for i2, j in enumerate(k_ids):
                 if k[0] == j[1] and k[1] == j[0]:
                     pairs.append((i1, i2))
-
         do_wyrzucenia = list()
         count = 0
 

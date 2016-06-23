@@ -73,7 +73,6 @@ def siatka_regularna_prost(n, dx, dy, x0, y0):
        boundaries_BC[3, i, 0] = temp[0, i]
        boundaries_BC[3, i, 1] = temp[0, i + 1]
 
-    # # print boundaries_BC
 
     return node_coordinates, cells, boundaries_BC
     # Utworzenie komorek na podstawie wezlow (zbior nr wezlow budujacych kom.).
@@ -134,7 +133,6 @@ def div(phi, field):           # phi to pole predkosci na scianach skalarne bo p
     field.apply_bc_convectiveFlux(D, Rhs, phi)
 
     return D, Rhs
-
 
 
 # wydruk konturow temperatur

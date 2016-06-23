@@ -3,7 +3,6 @@ from mesh import *
 from fvm1 import *
 
 
-
 class EdgeField:          # pole dla krawedzi zawiera inf co na krawedziach w konstr pobiera siatke mesh oraz numer krawedzi boundaryId
     def __init__(self, mesh, boundaryId):
         self.data = np.array([0.] * len(mesh.boundaries[boundaryId]))  # inicjuje zerami pobierajac dlugosc z mesh.boundaries[boundaryId]
@@ -53,8 +52,6 @@ class EdgeField:          # pole dla krawedzi zawiera inf co na krawedziach w ko
 
 
 
-
-
 class Dirichlet(EdgeField):         # clasa dla kazdej krawedzi o warunku dirich
     def __init__(self, mesh, bId, fi=0):
         EdgeField.__init__(self, mesh, bId)
@@ -94,7 +91,6 @@ class Dirichlet(EdgeField):         # clasa dla kazdej krawedzi o warunku dirich
             else:       # gdy wlatuje
                 Tbrzeg = self.data[i]
                 Rhs[c] += Tbrzeg * phiEdge * edgeLen
-
 
 
 
@@ -196,7 +192,7 @@ class SurfField:              # to jest po prostu field z wartosciami rozwiazani
         self.boundaries[bcObject.id] = bcObject   # przypisuje do tej listy (***) (tylko z numerami krawedzi WB) zadane przez urzytkownika WB
 
     def setValues(self, lista_wart):       # pobiera rozwiazanie ukladu rownan (pole temp) - uaktualnia wartosci pola temp tak aby na krawedziach WB neumana byly temp nie strumienie ciepla (do wizualizacji)
-        self.data = lista_wart          # rozwiazanie tu tablica "A"
+        self.data = lista_wart          # przypisuje wartosc rozwiazania do pola temperatur (zawarte w data)
         for b in self.boundaries:       # b kolejny warunek brzegowy tu 4 warunki
             b.upadate(self.data)        # przekaz pole temp do funkcji upadate
 
@@ -208,7 +204,6 @@ class SurfField:              # to jest po prostu field z wartosciami rozwiazani
     def apply_bc_convectiveFlux(self, EqMat, Rhs, phi):  # ma wrzucic ten warunek na macierz K i WPS
         for b in self.boundaries:  # petla po 4 war brzeg (te brzegi juz zapisalem uzywajac setBoundaryCondition
             b.insertConvectiveFlux(EqMat, Rhs, phi)  # jesli neuman to wywola z klasy neuman jesil dirichlet to z dirichlet zalezy czym jest b
-
 
 
 
@@ -236,7 +231,6 @@ def generate_phi(mesh):
         tan = np.array([-pc[1], pc[0]])     # normalna do pc[x, y] = pcn[-y, x]
         tan = tan / np.sqrt(tan.dot(tan))       # kierunek normalej
         U = tan * r * 140  # razy wsp.
-        #print len(mesh.list_kr)
         vals[i] = U  # wektor predkosci w srodkach komorek
 
     # trzeba wyinterpolowac predkosci na scianki
@@ -261,7 +255,7 @@ def generate_phi(mesh):
 
             v = vwl*(dlf/dl) + vsas*(dlc/dl)  # przypadek szczegolny
             vals_return[i] = v.dot(mesh.edge_normal(i))    # rzut na normalna do konkretnej krawedzi
-            #print vals_return[i]
+
         else:           # gdy krawedz brzegowa
             #vals_return[i] = 0.
             pass   # vals_return[i] = 0. nie trzeba bo zainicjalizowana zerami

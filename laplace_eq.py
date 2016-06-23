@@ -6,16 +6,21 @@ from interpolacja import *
 
 ro = 1
 k = 1
+cp = 1
+
+dt = 0.1
+tp = 0
+tk = 10
+
 
 DlPrzX = 1.; DlPrzY = 1.
 
-n = 10          # ilosc podzialow
+n = 20          # ilosc podzialow
 
 dx = DlPrzX/n
 dy = DlPrzY/n
 
 x0, y0, dl = (0, 0, 0)
-
 
 # wsp_wezl, cells, bounduary = siatka_regularna_prost(n, dx, dy, x0, y0)  czyli metoda siatka_regularna_prost zwroci to co Mesh potrzebuje czyli nodes, cells, boundary
 
@@ -25,9 +30,7 @@ mesh = Mesh(node_c, cells, bound)          # 1. tworzy obiekt mesh klasy Mesh, 2
 
 T = SurfField(mesh)    # tworzy obiekt klasy SurfField, pobierajacy obirkt mesh klasy Mesh ( na tej siatce ma tworzyc i przechowywac rozwiazanie (wartosci))
 
-#print mesh.cell_centers
-
-T.data[:] = 0.          # [:] do listy przypisze wartosc 0, samo = przypisze inny obiekt   przypisuje wszedzie wartosc 0
+T.data[:] = 0.          # [:] do listy przypisze wartosc 0, samo = przypisze inny obiekt   przypisuje wszedzie wartosc 0  Inicjalizacja
 
 
 Tdir = 1.
@@ -63,15 +66,16 @@ pkt1 = n/2 + n*n/2  # pkt srodek
 pkt2 = n/2 + n*4  # srodek 4 wiersze od spodu
 pkt3 = n/2 + n*(n-4)  # srodek 4 wiersze od gory
 
-F[pkt2] = -2
-F[pkt3] = -2
+F[pkt2] += -2/(ro*cp)
+F[pkt3] += -2/(ro*cp)
 
 F = F + Fc
 #F = F*0.01 + Fc            #dyfuzja nie wazna maly wsp
 
 A = solve(M, F)         #  rozw uklad rownan
 
-T.setValues(A)          # pole temp do aktualizacji wartosci temp w WB Neumana
+T.setValues(A)          # pole temp do aktualizacji przypisze rozwiazanie A do T i wyliczy wartosci temp w WB Neumana
+
 #print T.data.shape[0]
 
 #print A
