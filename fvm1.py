@@ -67,7 +67,7 @@ def siatka_regularna_prost(n, dx, dy, x0, y0):
        boundaries_BC[3, i, 0] = temp[0, i]
        boundaries_BC[3, i, 1] = temp[0, i + 1]
 
-    # # print boundaries_BC
+    #print boundaries_BC   # krawedzie przez numery punktow [0 1] [1 2] itd...
 
     return node_coordinates, cells, boundaries_BC
     # Utworzenie komorek na podstawie wezlow (zbior nr wezlow budujacych kom.).
@@ -82,15 +82,15 @@ def laplace(field):
     #def wspolczynnik_d(f, c, k1 ,k2)
 
     for kraw in lista_kra:
-        if kraw[3] > -1:          # jesli nie scianka brzegowa to wieksze niz -1
-            k1, k2, c1, c2 = kraw              # przypisz k1 k2 c1 c2 co stoi w wierszu macierzy lista_kr znanej jako kraw
-            cc1 = sum(field.mesh.xy[field.mesh.cells[c1], :]) / len(field.mesh.cells[c1])          #srodki komomurek pobiera numery wezlow z cells i wczytuje wsp z wsp_wezl
-            cc2 = sum(field.mesh.xy[field.mesh.cells[c2], :]) / len(field.mesh.cells[c2])          # pod cc1 i cc2 zapisuje wsp srodkow jako wektor [x,y]
-            a = wspolczynnik_d(cc2, cc1, field.mesh.xy[k1, :], field.mesh.xy[k2, :])        #licze wsp dla konkretnej scianki (jeden krok petli odpowiada jednej krawedzi )
-            f1 = c2         #sasiad
-            c = c1          #wlasciciel
-            macierz_K_e[c, c] += - a          #to co odp wlascicielowi
-            macierz_K_e[c, f1] += a           # to co odp sasiadowi z przeciwnym znakiem
+        if kraw[3] > -1:                                                                         # jesli nie scianka brzegowa to wieksze niz -1
+            k1, k2, c1, c2 = kraw                                                                # przypisz k1 k2 c1 c2 co stoi w wierszu macierzy lista_kr znanej jako kraw
+            cc1 = sum(field.mesh.xy[field.mesh.cells[c1], :]) / len(field.mesh.cells[c1])        #srodki komomurek pobiera numery wezlow z cells i wczytuje wsp z wsp_wezl
+            cc2 = sum(field.mesh.xy[field.mesh.cells[c2], :]) / len(field.mesh.cells[c2])        # pod cc1 i cc2 zapisuje wsp srodkow jako wektor [x,y]
+            a = wspolczynnik_d(cc2, cc1, field.mesh.xy[k1, :], field.mesh.xy[k2, :])             #licze wsp dla konkretnej scianki (jeden krok petli odpowiada jednej krawedzi )
+            f1 = c2                               #sasiad
+            c = c1                                #wlasciciel
+            macierz_K_e[c, c] += - a              #to co odp wlascicielowi
+            macierz_K_e[c, f1] += a               # to co odp sasiadowi z przeciwnym znakiem
             # kazda krawedz tylko raz ale ma sasiada odwracamy i wpisujemy dla sasaiada
             f1 = c1
             c = c2
@@ -104,26 +104,29 @@ def laplace(field):
     return macierz_K_e, rhs
 
 
-
-
     #   div to adwekcja
-def div(phi, field):           # phi to pole predkosci na scianach skalarne bo przemnozone skalarnie razy wektor normalny (ro * wektor predkosci * wekt normalny) = phi
-    n, lista_kra = field.mesh.n, field.mesh.list_kr    # lista kr: [ 1 0 0 1]  = [pkt1 pkt2 wl sasiad]
-    D = np.array([[0.] * n] * n)        # tablica 2D nxn
-    Rhs = np.zeros((n,1))   # wektor prawych stron  zainicjalizowny zerami
+def div(phi, field):                                    # phi to pole predkosci na scianach skalarne bo przemnozone skalarnie razy wektor normalny (ro * wektor predkosci * wekt normalny) = phi
+    n, lista_kra = field.mesh.n, field.mesh.list_kr     # lista kr: [ 1 0 0 1]  = [pkt1 pkt2 wl sasiad]
+    D = np.array([[0.] * n] * n)                        # tablica 2D nxn
+    Rhs = np.zeros((n,1))                               # wektor prawych stron  zainicjalizowny zerami
     mesh = field.mesh
 
-    for i, k in enumerate(mesh.list_kr):       # i - numer  k - krawedz   Wszystko powtarzane dla kazdej krawedzi
-        w, s = k[2:]            # zczytuje wlascicel, sasiad danej krawedzi i
+    for i, k in enumerate(mesh.list_kr):                # i - numer  k - krawedz   Wszystko powtarzane dla kazdej krawedzi
+        w, s = k[2:]                                    # zczytuje wlascicel, sasiad danej krawedzi i
         edgeLen = np.array(mesh.edge_vector(i))         #liczy wektor krawedziowy i
-        edgeLen = np.sqrt(edgeLen.dot(edgeLen))         #liczy dlugosc krawedzi dla konkretnego wektora krawedziowego
-        phiEdge = phi[i]        # pobiera wartosci predkosci z macierzy phi[dla elementu i]
-        if phiEdge > 0:
-            D[w, w] += phiEdge * edgeLen            # dodaj do wlascicela
-            D[s, w] -= phiEdge * edgeLen            # dodaj w innym wierszu do sasiada
-        else:
-            D[w, s] -= phiEdge * edgeLen
-            D[s, s] += phiEdge * edgeLen            # dodaj do sasiada
+        edgeLen = np.sqrt(edgeLen.dot(edgeLen))         #liczy dlugosc krawedzi dla konkretnego wektora krawedziowego( v*n*T*dl = phi*T*A)
+        phiEdge = phi[i]                                # pobiera wartosci predkosci z macierzy phi[dla elementu i]
+        #print phiEdge
+        #print "edg length", edgeLen
+        if k[3] > -1:
+            if phiEdge > 0:  # wieksze czyli wlata do komurki od sasiada
+                D[w, w] += phiEdge * edgeLen            # dodaj do wlascicela
+                D[s, w] -= phiEdge * edgeLen            # dodaj w innym wierszu do sasiada
+            elif phiEdge == 0:
+                pass
+            else:   # mniejsze czyli wylata do sasiada
+                D[w, s] += phiEdge * edgeLen
+                D[s, s] -= phiEdge * edgeLen            # dodaj do sasiada
 
     field.apply_bc_convectiveFlux(D, Rhs, phi)
 
@@ -134,7 +137,7 @@ def WB_dir_T1(lista_kr, Td, wsp_wezl, macierz_K_e, rhs):
     # warunki brzegowe 1) jako T w centrum komorki wiec po prostu w macierz K wpisuje w miejsce odp sr. kom 1 a w wektor pr stron = danej temp
     for kraw in lista_kr:
         if kraw[3] == -1:
-            c = kraw[2]         #indeks komorki wlascicela
+            c = kraw[2]                       #indeks komorki wlascicela
             macierz_K_e[c, :] = 0             # wakazuje na wiersz czyli na komorke i zapisuje we wszystkich elementach wiersza 0
             macierz_K_e[c, c] = 1             # na przekatnej wpisuje 1
             if wsp_wezl[kraw[0], 1] == 0 and wsp_wezl[kraw[1], 1] == 0:          # spr wspl obu wezlow krawedzi czy sa rowne zero po y

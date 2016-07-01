@@ -36,14 +36,15 @@ class Mesh:
             cc[i][1] = (self.xy[c1][1] + self.xy[c2][1] + self.xy[c3][1] + self.xy[c4][1]) / len(self.cells[i])  # srodki komomorek pobiera numery wezlow z cells i wczytuje wsp z wsp_wezl
         return cc
 
-    def __bound_to_edge_bound__(self, boundaries):
+    # zapisuje 4 war brzegowe jako liste z numerami krawedzi
+    def __bound_to_edge_bound__(self, boundaries):                # boundaries zawiera 4 krawedzie z siatki reg prost
         bond_to_edge = np.array( [ [0]*len(b) for b in boundaries ] )
 
-        for idBoundry, b in enumerate(boundaries):        # petla po 4 War Brzeg
-            for idBEdge, edge_nodes in enumerate(b):             # petla po konkretnym WB
-                for idEdge, edge in enumerate(self.list_kr):
+        for idBoundry, b in enumerate(boundaries):                # petla po 4 War Brzeg bo tyle mamy w naszej siatce gdyby wiecej to po wiekszej liczbie elementow
+            for idBEdge, edge_nodes in enumerate(b):              # petla po konkretnym WB
+                for idEdge, edge in enumerate(self.list_kr):      # przelec po wszystkich krawedziach (list_kr) i porownaj z tym co w BC
                     if (edge_nodes[0] == edge[0] and edge_nodes[1] == edge[1]) or (edge_nodes[1] == edge[0] and edge_nodes[0] == edge[1]):
-                        bond_to_edge[idBoundry][idBEdge] = idEdge
+                        bond_to_edge[idBoundry][idBEdge] = idEdge # przypisz krawedzi jej numer jesli punky sobie odpowiadaja
         #print bond_to_edge
         return bond_to_edge
 
@@ -115,7 +116,7 @@ class Mesh:
         ny = yn / dlw
         return nx, ny
 
-    def edge_normal(self, i):           # i indeks krawedzi
+    def edge_normal(self, i):           # i indeks krawedzi   liczy normalna do krawedzi zapisanej w liscie pod indeksem i
         def_edge = self.list_kr[i, :2]          # wyciagam numery (indeksy) punktow z ktorch sklada sie dana krawedz  dwa pierwsze elementy wiersza
         #print i
         #print self.xy[def_edge[1]], self.xy[def_edge[0]]

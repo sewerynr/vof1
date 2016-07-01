@@ -6,7 +6,7 @@ from interpolacja import *
 
 DlPrzX = 1.; DlPrzY = 1.
 
-n = 40          # ilosc podzialow
+n = 52          # ilosc podzialow
 
 dx = DlPrzX/n
 dy = DlPrzY/n
@@ -34,14 +34,13 @@ TdirWB = 1
 T.setBoundaryCondition(Dirichlet(mesh, 0, TdirWB))
 
 #T.setBoundaryCondition(Neuman(mesh, 1, 0))
-
 T.setBoundaryCondition(Dirichlet(mesh, 1, TdirWB))
 
 #T.setBoundaryCondition(Neuman(mesh, 2, 0))
 T.setBoundaryCondition(Dirichlet(mesh, 2, TdirWB))
 
-#T.setBoundaryCondition(Neuman(mesh, 3, 0))   # symetria na krawedzi 3 (4)
-T.setBoundaryCondition(Dirichlet(mesh, 3, TdirWB))
+T.setBoundaryCondition(Neuman(mesh, 3, 0))   # symetria na krawedzi 3 (4)
+#T.setBoundaryCondition(Dirichlet(mesh, 3, TdirWB))
 
 # d = Dirichlet(mesh, 3, TdirWB)
 # d[:] = 1            # domyslnie zainicjalizowana zerami (dziedziczy po EdgeField) tu zapisuje te krawedz wartoscia = 1
@@ -51,14 +50,22 @@ T.setBoundaryCondition(Dirichlet(mesh, 3, TdirWB))
 M, F = laplace(T)    # ukladanie macierzy i wektora prawych stron laplace
 Mc, Fc = div(generate_phi(mesh), T)    # ukladanie macierzy i wektora prawych stron, dostaje D i Rhs z div
 
+np.set_printoptions(precision=3)
+print Mc
+#print Mc*(-1)
 M = M + Mc
-pkt1 = n/2 + n*n/2  # pkt srodek
-pkt2 = n/2 + n*4  # srodek 4 wiersze od spodu
-pkt3 = n/2 + n*(n-4)  # srodek 4 wiersze od gory
 
-F[pkt2] = -2
-F[pkt3] = -2
+pkt1 = n/2 + n*n/2  # pkt srodek
+pkt2 = n/2 + n*2  # srodek 4 wiersze od spodu
+pkt3 = n/2 + n*(n-2)  # srodek 4 wiersze od gory
+
+F[pkt1] = -12
+#F[pkt2] = -10
+#F[pkt3] = -11
+
 F = F + Fc
+np.set_printoptions(precision=3)
+#print Fc
 
 A = solve(M, F)         #  rozw uklad rownan
 
