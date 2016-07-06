@@ -118,15 +118,36 @@ def div(phi, field):                                    # phi to pole predkosci 
         phiEdge = phi[i]                                # pobiera wartosci predkosci z macierzy phi[dla elementu i]
         #print phiEdge
         #print "edg length", edgeLen
+
+        #!!!!!!!!!!!!!!!!!!!!!!!!!!!! Wiersz mowi ktora komorka kolumna co i skad wlata wylata  (strumien o jakiejs temp)   !!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        # Upind
+        # if k[3] > -1:
+            # if phiEdge > 0:  # od wlasiciela do sasiada
+            #     D[w, w] -= phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
+            #     D[s, w] += phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
+            # elif phiEdge == 0:
+            #     pass
+            # else:   # phiedge < 0 mniejsze od sasiada do wlasciciela
+            #     D[s, s] += phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [od sasiada , z temp sasiada]
+            #     D[w, s] -= phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [do wl , temp sasiada]
+
+        #Central
         if k[3] > -1:
-            if phiEdge > 0:  # wieksze czyli wlata do komurki od sasiada
-                D[w, w] += phiEdge * edgeLen            # dodaj do wlascicela
-                D[s, w] -= phiEdge * edgeLen            # dodaj w innym wierszu do sasiada
+            if phiEdge > 0:  # od wlasiciela do sasiada
+                D[w, w] -= phiEdge * edgeLen / 2         # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
+                D[w, s] -= phiEdge * edgeLen / 2         # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
+
+                D[s, s] += phiEdge * edgeLen / 2         # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
+                D[s, w] += phiEdge * edgeLen / 2         # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
             elif phiEdge == 0:
                 pass
-            else:   # mniejsze czyli wylata do sasiada
-                D[w, s] += phiEdge * edgeLen
-                D[s, s] -= phiEdge * edgeLen            # dodaj do sasiada
+            else:   # phiedge < 0 mniejsze od sasiada do wlasciciela
+                D[s, s] += phiEdge * edgeLen / 2        # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
+                D[s, w] += phiEdge * edgeLen / 2        # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
+
+                D[w, w] -= phiEdge * edgeLen / 2        # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
+                D[w, s] -= phiEdge * edgeLen / 2        # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
 
     field.apply_bc_convectiveFlux(D, Rhs, phi)
 
@@ -202,12 +223,12 @@ def draw_values_centers(dx, dy,  DlPrzX, DlPrzY, n, T):
 #po indeksach rysuje komorke
 
 def index_draw_cell(cells, wsp_wezl):
-    plt.figure()          # inicjalizuje okno
-    for id, cell in enumerate(cells):         #pobiera numery wierszy macierzy "cell" i leci po nich
+    plt.figure()                                    # inicjalizuje okno
+    for id, cell in enumerate(cells):               #pobiera numery wierszy macierzy "cell" i leci po nich
         plt.plot(wsp_wezl[cell, 0], wsp_wezl[cell, 1], 'b-')        # rysuje linie z x i y
-    plt.gca().set_xlim([-0.1, 1.1])       # granice rysowania od -0.1 do 1.1
+    plt.gca().set_xlim([-0.1, 1.1])                 # granice rysowania od -0.1 do 1.1
     plt.gca().set_ylim([-0.1, 1.1])
-    plt.show()         # dopoki sie tego nie napisze dodaje nastepne rysownia do tego samego okna
+    plt.show()                                      # dopoki sie tego nie napisze dodaje nastepne rysownia do tego samego okna
 
 
 # rysuje krawedzie siatki
