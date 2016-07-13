@@ -6,7 +6,7 @@ from interpolacja import *
 
 DlPrzX = 1.; DlPrzY = 1.
 
-n = 26                                                     # ilosc podzialow
+n = 28                                                    # ilosc podzialow
 
 dx = DlPrzX/n
 dy = DlPrzY/n
@@ -37,40 +37,47 @@ TdirWB = 0
 #T.setBoundaryCondition(Neuman(mesh, 0, 0))               # zero odpowiada zerowej krawedzi pobiera obiekt klasy Dirichlet (wywoluje go i tworzy)
 T.setBoundaryCondition(Dirichlet(mesh, 0, TdirWB))
 
-#T.setBoundaryCondition(Neuman(mesh, 1, 0))
-T.setBoundaryCondition(Dirichlet(mesh, 1, TdirWB))
+T.setBoundaryCondition(Neuman(mesh, 1, 0))
+#T.setBoundaryCondition(Dirichlet(mesh, 1, TdirWB))
 
 #T.setBoundaryCondition(Neuman(mesh, 2, 0))
 T.setBoundaryCondition(Dirichlet(mesh, 2, TdirWB))
 
 #T.setBoundaryCondition(Neuman(mesh, 3, 0))              # symetria na krawedzi 3 (4)
-T.setBoundaryCondition(Dirichlet(mesh, 3, TdirWB))
+T.setBoundaryCondition(Dirichlet(mesh, 3, 10))
 
 # d = Dirichlet(mesh, 3, TdirWB)
 # d[:] = 1                                               # domyslnie zainicjalizowana zerami (dziedziczy po EdgeField) tu zapisuje te krawedz wartoscia = 1
 # T.setBoundaryCondition(d)
 
 
-M, F = laplace(T, dt)                                        # ukladanie macierzy i wektora prawych stron laplace
-Mc, Fc = div(generate_phi(mesh), T, dt)                      # ukladanie macierzy i wektora prawych stron, dostaje D i Rhs z div
+M, F = laplace(T)                                        # ukladanie macierzy i wektora prawych stron laplace
+
+M = M * dt
+F = F * dt
+
+Mc, Fc = div(generate_phi_1(mesh), T)                      # ukladanie macierzy i wektora prawych stron, dostaje D i Rhs z div
+
+Mc = Mc * dt
+Fc = Fc * dt
 
 np.set_printoptions(precision=3)
 
-#print M
-#M = M*(1.000001) + Mc*(0)
+M = M*(1) + Mc*(1)
 
-#F = F*(1.000001) + Fc*(0)
+F = F*(1) + Fc*(1)
+
 np.set_printoptions(precision=3)
 #print Fc
 
 pkt1 = n/2 + n*n/2                       # pkt srodek
-pkt2 = n/2 + n*8                         # srodek 4 wiersze od spodu
-pkt3 = n/2 + n*(n-8)                     # srodek 4 wiersze od gory
+pkt2 = n/2 + n*5                         # srodek 4 wiersze od spodu
+pkt3 = n/2 + n*(n-5)                     # srodek 4 wiersze od gory
 
-F[pkt1] += -100
-#F[pkt2] += -100
-#F[pkt3] += -100
-#print F
+#F[pkt1] += -300
+#F[pkt2] += -200
+#F[pkt3] += -200
+
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!! steady solution !!!!!!!!!!!!!!!!!!!!!!
 # T.data[:] = 0                          # War. Pocz. # [:] do listy przypisze wartosc 0, samo = przypisze inny obiekt przypisuje wszedzie wartosc 0
 #
@@ -85,7 +92,6 @@ F[pkt1] += -100
 
 #draw_values_edges(mesh.xy, mesh.cells, mesh.list_kr, T, n, DlPrzX, DlPrzY, Tdir)
 # # draw_edges(mesh.xy, mesh.list_kr)
-
 
 
 I = np.matrix(np.identity(n*n))
@@ -105,7 +111,6 @@ for iter in range(int(nt)):
     F = -Fconst + T.data
     Tn = T.data.reshape((n, n))
     Results.append(Tn)
-    # print T
 
 # Animate results:
 animate_contour_plot(Results, skip=1, repeat=False, interval=200, dataRange=[0, 10])

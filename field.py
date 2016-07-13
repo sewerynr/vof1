@@ -28,7 +28,7 @@ class EdgeField:          # pole dla krawedzi zawiera inf co na krawedziach w ko
         '''
         pass
 
-    def insertConvectiveFlux(self, phi, EqMat, Rhs, dt):            # inne dla Neuman inne dla Dirichet
+    def insertConvectiveFlux(self, phi, EqMat, Rhs):            # inne dla Neuman inne dla Dirichet
         pass
 
 
@@ -53,8 +53,6 @@ class EdgeField:          # pole dla krawedzi zawiera inf co na krawedziach w ko
 
 
 
-
-
 class Dirichlet(EdgeField):                                         # clasa dla kazdej krawedzi o warunku dirich
     def __init__(self, mesh, bId, fi=0):
         EdgeField.__init__(self, mesh, bId)
@@ -68,7 +66,7 @@ class Dirichlet(EdgeField):                                         # clasa dla 
     def __getitem__(self, item):
         return self.data.__getitem__(item)
 
-    def insertDiffusiveFlux(self, EqMat, Rhs, dt):                      # dopisuje do macierzy_K WB
+    def insertDiffusiveFlux(self, EqMat, Rhs):                      # dopisuje do macierzy_K WB
         for i, _ in enumerate(self.mesh.boundaries[self.id]):
             id_edge = self.mesh.boundaries[self.id, i]              # indeks krawedzi w WB
             field = self.field
@@ -77,10 +75,10 @@ class Dirichlet(EdgeField):                                         # clasa dla 
             nr_kr_1, nr_kr_2 = field.mesh.list_kr[id_edge, 0], field.mesh.list_kr[id_edge, 1]
             ck3 = (field.mesh.xy[nr_kr_1, :] + field.mesh.xy[nr_kr_2, :]) / 2                        # srodek scianki to samo co ck1 i ck2 ale od razu dla 2 wsp srodka sciany [x,y]
             ad = wspolczynnik_d(ck3, cc1, field.mesh.xy[nr_kr_1, :], field.mesh.xy[nr_kr_2, :])      # pobiera wsp punkt z ktorych sklada sie krawedz
-            EqMat[c, c] -= ad * dt / self.field.mesh.cell_area[c]                           #   do kom wlasciciela przypisuje wsp
-            Rhs[c] += -self.data[i] * ad * dt / self.field.mesh.cell_area[c]                # data odp komorce
+            EqMat[c, c] -= ad / self.field.mesh.cell_area[c]                           #   do kom wlasciciela przypisuje wsp
+            Rhs[c] += -self.data[i] * ad / self.field.mesh.cell_area[c]                # data odp komorce
 
-    def insertConvectiveFlux(self, EqMat, Rhs, phi, dt):
+    def insertConvectiveFlux(self, EqMat, Rhs, phi):
         for i, _ in enumerate(self.mesh.boundaries[self.id]):
             id_edge = self.mesh.boundaries[self.id, i]    # indeks krawedzi w WB
             #field = self.field
@@ -90,10 +88,10 @@ class Dirichlet(EdgeField):                                         # clasa dla 
 
             phiEdge = phi[id_edge]
             if phiEdge > 0:                               # gdy wylatuje
-                EqMat[c, c] -= phiEdge*edgeLen * dt / self.field.mesh.cell_area[c]
+                EqMat[c, c] -= phiEdge*edgeLen / self.field.mesh.cell_area[c]
             else:                                         # gdy wlatuje
                 Tbrzeg = self.data[i]
-                Rhs[c] += Tbrzeg * phiEdge * edgeLen * dt / self.field.mesh.cell_area[c]
+                Rhs[c] += Tbrzeg * phiEdge * edgeLen / self.field.mesh.cell_area[c]
 
 
 
@@ -138,7 +136,7 @@ class Neuman(EdgeField):                                        # klasa dla kazd
             #print self.data[i], self.deriv, ds
 
 
-    def insertDiffusiveFlux(self, EqMat, Rhs, dt):  # pobiera macierz K i wektor pr stron
+    def insertDiffusiveFlux(self, EqMat, Rhs):  # pobiera macierz K i wektor pr stron
         #print len(self.mesh.boundaries[self.id])
         for i in range(len(self.mesh.boundaries[self.id])):
             id_edge = self.mesh.boundaries[self.id, i]                          # indeks krawedzi w WB
@@ -146,9 +144,9 @@ class Neuman(EdgeField):                                        # klasa dla kazd
             nr_kr_1, nr_kr_2 = self.field.mesh.list_kr[id_edge, 0], self.field.mesh.list_kr[id_edge, 1]
             wekt_ws = self.field.mesh.wsp_wekt_z_wsp(self.field.mesh.xy[nr_kr_1, :], self.field.mesh.xy[nr_kr_2, :])
 
-            Rhs[c] += self.deriv * self.field.mesh.dl_wekt(wekt_ws[0], wekt_ws[1]) * dt / self.field.mesh.cell_area[c]      #  dodac razy dlugosc
+            Rhs[c] += self.deriv * self.field.mesh.dl_wekt(wekt_ws[0], wekt_ws[1]) / self.field.mesh.cell_area[c]      #  dodac razy dlugosc
 
-    def insertConvectiveFlux(self, EqMat, Rhs, phi, dt):
+    def insertConvectiveFlux(self, EqMat, Rhs, phi):
         for i, _ in enumerate(self.mesh.boundaries[self.id]):
             id_edge = self.mesh.boundaries[self.id, i]                          # indeks krawedzi w WB
             field = self.field
@@ -158,26 +156,26 @@ class Neuman(EdgeField):                                        # klasa dla kazd
 
             phiEdge = phi[id_edge]
             if phiEdge > 0:                                                     # wylatuje
-                EqMat[c, c] -= phiEdge*edgeLen * dt / self.field.mesh.cell_area[c]
+                EqMat[c, c] -= phiEdge*edgeLen / self.field.mesh.cell_area[c]
             else:                                                               # gdy wlatuje
                 Tbrzeg = self.data[i]                                           # powinno byc z zewnetrznej krawedzi nie istniejacej bo wlatuje z zewnatrz
 
-                Rhs[c] -= Tbrzeg * phiEdge * edgeLen * dt / self.field.mesh.cell_area[c]
+                Rhs[c] -= Tbrzeg * phiEdge * edgeLen / self.field.mesh.cell_area[c]
 
 
 
-class symmetry(Neuman):             #  # klasa dla kazdej krawedzi o warunku neuman o wartosci poch w kier normalym = 0
+class symmetry(Neuman):                                                                # klasa dla kazdej krawedzi o warunku neuman o wartosci poch w kier normalym = 0
     def __init__(self, mesh, bId):
         Neuman.__init__(self, mesh, bId, np.array([0.] * len(mesh.boundaries[bId])))    # konstruktor pierwotnej klasy po ktorej dziedziczy, derrevativeValue przyjmuje teraz liste o wartosicach 0 i rozmiarze dlugosci mesh.boundaries
-        self.id = bId        # zapisuje numer krawedzi pod oznaczeniem id
+        self.id = bId                                                                   # zapisuje numer krawedzi pod oznaczeniem id
         self.mesh = mesh
 
 
 
 class SurfField:                                     # to jest po prostu field z wartosciami rozwiazania dziedziczy po np.array
     def __init__(self, mesh):                        # pobiera mesh a z nim jego rozmiar i boundaries czyli WB
-        #self.data = np.array([0.]*mesh.n)            # [0.]*mesh.n lista zer o rozmiarze mesh.n
-        self.data = np.zeros((mesh.n, 1))  # zamien lem
+        #self.data = np.array([0.]*mesh.n)           # [0.]*mesh.n lista zer o rozmiarze mesh.n
+        self.data = np.zeros((mesh.n, 1))            # zamien lem
         self.boundaries = [EdgeField(mesh, i) for i, _ in enumerate(mesh.boundaries)]          # (***) lista z pustymi warunkami brzegowymi dodatkowa do przechowania _ zmienna ktorej nikt nie uzyje interesuje nas tylko ilosc nie wartosc
         self.mesh = mesh
     # @property
@@ -200,22 +198,22 @@ class SurfField:                                     # to jest po prostu field z
             b.upadate(self.data)               # przekaz pole temp do funkcji upadate
 
 
-    def apply_bc_diffusiveFlux(self, EqMat, Rhs, dt):        # ma wrzucic ten warunek na macierz M i rhs
+    def apply_bc_diffusiveFlux(self, EqMat, Rhs):        # ma wrzucic ten warunek na macierz M i rhs
         for b in self.boundaries:                        # petla po 4 war brzeg (te brzegi juz zapisalem uzywajac setBoundaryCondition
-            b.insertDiffusiveFlux(EqMat, Rhs, dt)            # jesli neuman to wywola z klasy neuman jesil dirichlet to z dirichlet zalezy czym jest b
+            b.insertDiffusiveFlux(EqMat, Rhs)            # jesli neuman to wywola z klasy neuman jesil dirichlet to z dirichlet zalezy czym jest b
 
-    def apply_bc_convectiveFlux(self, EqMat, Rhs, phi, dt):  # ma wrzucic ten warunek na macierz M i rhs
+    def apply_bc_convectiveFlux(self, EqMat, Rhs, phi):  # ma wrzucic ten warunek na macierz M i rhs
         for b in self.boundaries:                        # petla po 4 war brzeg (te brzegi juz zapisalem uzywajac setBoundaryCondition
-            b.insertConvectiveFlux(EqMat, Rhs, phi, dt)      # jesli neuman to wywola z klasy neuman jesil dirichlet to z dirichlet zalezy czym jest b
+            b.insertConvectiveFlux(EqMat, Rhs, phi)      # jesli neuman to wywola z klasy neuman jesil dirichlet to z dirichlet zalezy czym jest b
 
 
 
 
 #  odrazu daje normalne skl pr na sciankach
-def generate_phi3(mesh):           #po krawedziach
+def generate_phi_r(mesh):           #po krawedziach
     vals = np.zeros(len(mesh.list_kr))          # lista wartosci 0 i dl odpowiadajacej ilosci krawedzi
     for i,kraw in enumerate(mesh.list_kr):      # dla kazdej krawedzi
-        print kraw
+        #print kraw
         p1, p2 = mesh.xy[kraw[:2]]              # zczytaj punkty krawedzi  (dwie pierwsze liczby z list_kr) i pobierz ich wsp x , y
         pc = (p1 + p2)/2. - [0.5, 0.5]          # wektor od srodka obszaru do srodka krawedzi
         #print pc
@@ -232,13 +230,13 @@ def generate_phi3(mesh):           #po krawedziach
         #print "rzut na normalna do kr.", vals[i]
     return vals
 
-def generate_phi(mesh):                         # po sr. krawedzi w kierunku -x
+def generate_phi_1(mesh):                         # po sr. krawedzi w kierunku -x
     vals = np.zeros(len(mesh.list_kr))          # lista wartosci 0 i dl odpowiadajacej ilosci krawedzi
     for i,kraw in enumerate(mesh.list_kr):      # dla kazdej krawedzi
         #print kraw
         p1, p2 = mesh.xy[kraw[:2]]              # zczytaj punkty krawedzi  (dwie pierwsze liczby z list_kr) i pobierz ich wsp x , y
         pc = (p1 + p2)/2.                       # srodek krawedzi
-        U = [10, 10]
+        U = [10, 0]
         U = np.array([U[0], U[1]])
         #print "predkosc:", U
         vals[i] = U.dot(mesh.edge_normal(i))    # rzut na normalna do konkretnej krawedzi - phi
@@ -246,7 +244,7 @@ def generate_phi(mesh):                         # po sr. krawedzi w kierunku -x
     return vals
 
 
-def generate_phi2(mesh):
+def generate_phi_r_2(mesh):
     vals_return = np.zeros(len(mesh.list_kr))
     vals = np.array([[0.] * 2] * len(mesh.cells))     # lista wartosci 0 i dl odpowiadajacej ilosci krawedzi
     # generuje predkosci w srodkach komorek
@@ -255,7 +253,7 @@ def generate_phi2(mesh):
         r = np.square(pc.dot(pc))
         tan = np.array([-pc[1], pc[0]])               # normalna do pc[x, y] = pcn[-y, x]
         tan = tan / np.sqrt(tan.dot(tan))             # kierunek normalej
-        U = tan * r * 100                             # razy wsp.
+        U = tan * r * 3200                             # razy wsp.
         #print len(mesh.list_kr)
         vals[i] = U                                   # wektor predkosci w srodkach komorek
 
@@ -264,7 +262,6 @@ def generate_phi2(mesh):
     # trzeba warunek na krawedzie brzegowe
     for i, kraw in enumerate(mesh.list_kr):
         if kraw[3] > 0:    # jesli ma sasiada
-
             # przypadek szczegolny odl do srodkow krawedzi nie przeciec wektorow
             # zczytuje z listy_kr wlasciciela i sasiada i pobieram predkosci w ich srodkach komorek jako wektor [x, y]
             vwl = vals[kraw[2]]
@@ -281,7 +278,7 @@ def generate_phi2(mesh):
 
             v = vwl*(dlf/dl) + vsas*(dlc/dl)                      # przypadek szczegolny
             vals_return[i] = v.dot(mesh.edge_normal(i))           # rzut na normalna do konkretnej krawedzi
-            #print vals_return[i]
+            print vals_return[i]
         else:                                                     # gdy krawedz brzegowa
             #vals_return[i] = 0.
             pass                                                  # vals_return[i] = 0. nie trzeba bo zainicjalizowana zerami

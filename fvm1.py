@@ -74,7 +74,7 @@ def siatka_regularna_prost(n, dx, dy, x0, y0):
     # Definicja 1 komorki: [ nr wz1, nr wz2, nr wz3, nr wz4 ]
 
 
-def laplace(field, dt):
+def laplace(field):
     n, lista_kra = field.mesh.n, field.mesh.list_kr
     macierz_K_e = np.array([[0.]*n]*n)
 
@@ -89,23 +89,23 @@ def laplace(field, dt):
             a = wspolczynnik_d(cc2, cc1, field.mesh.xy[k1, :], field.mesh.xy[k2, :])             # licze wsp dla konkretnej scianki (jeden krok petli odpowiada jednej krawedzi )
             f1 = c2                               # sasiad
             c = c1                                # wlasciciel
-            macierz_K_e[c, c] += - a * dt / field.mesh.cell_area[c]           # to co odp wlascicielowi
-            macierz_K_e[c, f1] += a * dt / field.mesh.cell_area[c]             # to co odp sasiadowi z przeciwnym znakiem
+            macierz_K_e[c, c] += - a / field.mesh.cell_area[c]           # to co odp wlascicielowi
+            macierz_K_e[c, f1] += a / field.mesh.cell_area[c]             # to co odp sasiadowi z przeciwnym znakiem
             # kazda krawedz tylko raz ale ma sasiada odwracamy i wpisujemy dla sasaiada
             f1 = c1
             c = c2
-            macierz_K_e[c, c] += - a * dt / field.mesh.cell_area[c]             # macierz_K_e[c2,c2]
-            macierz_K_e[c, f1] += a * dt / field.mesh.cell_area[c]              # macierz_K_e[c2,c1]
+            macierz_K_e[c, c] += - a / field.mesh.cell_area[c]             # macierz_K_e[c2,c2]
+            macierz_K_e[c, f1] += a / field.mesh.cell_area[c]              # macierz_K_e[c2,c1]
 
     rhs = np.zeros((n, 1))
 
-    field.apply_bc_diffusiveFlux(macierz_K_e, rhs, dt)
+    field.apply_bc_diffusiveFlux(macierz_K_e, rhs)
 
     return macierz_K_e, rhs
 
 
     #   div to adwekcja
-def div(phi, field, dt):                                    # phi to pole predkosci na scianach skalarne bo przemnozone skalarnie razy wektor normalny (ro * wektor predkosci * wekt normalny) = phi
+def div(phi, field):                                    # phi to pole predkosci na scianach skalarne bo przemnozone skalarnie razy wektor normalny (ro * wektor predkosci * wekt normalny) = phi
     n, lista_kra = field.mesh.n, field.mesh.list_kr     # lista kr: [ 1 0 0 1]  = [pkt1 pkt2 wl sasiad]
     D = np.array([[0.] * n] * n)                        # tablica 2D nxn
     Rhs = np.zeros((n,1))                               # wektor prawych stron  zainicjalizowny zerami
@@ -124,32 +124,32 @@ def div(phi, field, dt):                                    # phi to pole predko
         # Upind
         if k[3] > -1:
             if phiEdge > 0:  # od wlasiciela do sasiada
-                D[w, w] -= phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
-                D[s, w] += phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
+                D[w, w] -= phiEdge * edgeLen / field.mesh.cell_area[w]         # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
+                D[s, w] += phiEdge * edgeLen / field.mesh.cell_area[s]         # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
             elif phiEdge == 0:
                 pass
             else:   # phiedge < 0 mniejsze od sasiada do wlasciciela
-                D[s, s] += phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [od sasiada , z temp sasiada]
-                D[w, s] -= phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [do wl , temp sasiada]
+                D[s, s] += phiEdge * edgeLen / field.mesh.cell_area[s]          # [ skad wylata/dokad , z jaka temp ] => [od sasiada , z temp sasiada]
+                D[w, s] -= phiEdge * edgeLen / field.mesh.cell_area[w]          # [ skad wylata/dokad , z jaka temp ] => [do wl , temp sasiada]
 
         #Central
         # if k[3] > -1:
         #     if phiEdge > 0:  # od wlasiciela do sasiada
-        #         D[w, w] -= phiEdge * edgeLen / 2         # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
-        #         D[w, s] -= phiEdge * edgeLen / 2         # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
+        #         D[w, w] -= phiEdge * edgeLen / (2 * field.mesh.cell_area[w])         # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
+        #         D[w, s] -= phiEdge * edgeLen / (2 * field.mesh.cell_area[w])         # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
         #
-        #         D[s, s] += phiEdge * edgeLen / 2         # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
-        #         D[s, w] += phiEdge * edgeLen / 2         # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
+        #         D[s, s] += phiEdge * edgeLen / (2 * field.mesh.cell_area[s])          # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
+        #         D[s, w] += phiEdge * edgeLen / (2 * field.mesh.cell_area[s])         # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
         #     elif phiEdge == 0:
         #         pass
         #     else:   # phiedge < 0 mniejsze od sasiada do wlasciciela
-        #         D[s, s] += phiEdge * edgeLen / 2        # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
-        #         D[s, w] += phiEdge * edgeLen / 2        # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
+        #         D[s, s] += phiEdge * edgeLen / (2 * field.mesh.cell_area[s])         # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
+        #         D[s, w] += phiEdge * edgeLen / (2 * field.mesh.cell_area[s])         # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
         #
-        #         D[w, w] -= phiEdge * edgeLen / 2        # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
-        #         D[w, s] -= phiEdge * edgeLen / 2        # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
+        #         D[w, w] -= phiEdge * edgeLen / (2 * field.mesh.cell_area[w])         # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
+        #         D[w, s] -= phiEdge * edgeLen / (2 * field.mesh.cell_area[w])         # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
 
-    field.apply_bc_convectiveFlux(D, Rhs, phi, dt)
+    field.apply_bc_convectiveFlux(D, Rhs, phi)
 
     return D, Rhs
 
