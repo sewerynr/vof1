@@ -14,7 +14,6 @@ class Mesh:
 
         # self.cell_centers = cell_centers
         # self.__wsp_dl__ = None  # tez do (*****)
-        self.wsp_dl = self.__wektor_wsp_idl__()         # wywolaj __prywatna metode__ i oddaj tablice wsp.dl
 
         self.cell_area = self.__cell_area__()
         self.list_kr = self.__lista_krawedzi__()
@@ -72,37 +71,6 @@ class Mesh:
         #print bond_to_edge
         return bond_to_edge
 
-
-    def __wektor_wsp_idl__(self):
-
-        wekt_wsp_dlw = np.array([[0.] * 14] * (self.n))
-        for l in range(self.n):
-
-            wekt_wsp_dlw[l, 0] = self.xy[self.cells[l, 1], 0] - self.xy[self.cells[l, 0], 0]  # po x
-            wekt_wsp_dlw[l, 1] = self.xy[self.cells[l, 1], 1] - self.xy[self.cells[l, 0], 1]  # po y
-
-            wekt_wsp_dlw[l, 2] = self.xy[self.cells[l, 2], 0] - self.xy[self.cells[l, 1], 0]
-            wekt_wsp_dlw[l, 3] = self.xy[self.cells[l, 2], 1] - self.xy[self.cells[l, 1], 1]
-
-            wekt_wsp_dlw[l, 4] = self.xy[self.cells[l, 3], 0] - self.xy[self.cells[l, 2], 0]
-            wekt_wsp_dlw[l, 5] = self.xy[self.cells[l, 3], 1] - self.xy[self.cells[l, 2], 1]
-
-            wekt_wsp_dlw[l, 6] = self.xy[self.cells[l, 0], 0] - self.xy[self.cells[l, 3], 0]
-            wekt_wsp_dlw[l, 7] = self.xy[self.cells[l, 0], 1] - self.xy[self.cells[l, 3], 1]
-
-            # wpisuje dl wektorow
-
-            wekt_wsp_dlw[l, 8] = self.dl_wekt(wekt_wsp_dlw[l, 0], wekt_wsp_dlw[l, 1])
-            wekt_wsp_dlw[l, 9] = self.dl_wekt(wekt_wsp_dlw[l, 2], wekt_wsp_dlw[l, 3])
-            wekt_wsp_dlw[l, 10] = self.dl_wekt(wekt_wsp_dlw[l, 4], wekt_wsp_dlw[l, 5])
-            wekt_wsp_dlw[l, 11] = self.dl_wekt(wekt_wsp_dlw[l, 6], wekt_wsp_dlw[l, 7])
-
-            # wpisuje sr komorek pobieram x z wsp_wezlow wczytujac jakie wezly tworza komorke z cells
-
-            wekt_wsp_dlw[l, 12] = self.sr_komX(self.xy[self.cells[l, 1], 0], self.xy[self.cells[l, 0], 0], self.xy[self.cells[l, 3], 0], self.xy[self.cells[l, 2], 0])
-            wekt_wsp_dlw[l, 13] = self.sr_komX(self.xy[self.cells[l, 1], 1], self.xy[self.cells[l, 0], 1], self.xy[self.cells[l, 3], 1], self.xy[self.cells[l, 2], 1])
-
-        return wekt_wsp_dlw
 
     def edge_vector(self, edgeId):
         p1 = self.xy[self.list_kr[edgeId, 0], :]

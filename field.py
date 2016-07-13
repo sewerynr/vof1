@@ -208,39 +208,36 @@ class SurfField:                                     # to jest po prostu field z
 
 
 
+def quadratic_velocity(pc, tanPc, r):
+    U = 0.
+    if r <= 1:
+        return tanPc*U*(-(r-1)**2+1)
+    else:
+        return np.array([0.,0.])
 
 #  odrazu daje normalne skl pr na sciankach
-def generate_phi_r(mesh):           #po krawedziach
+def generate_phi_r(mesh, velcity_function):           #po krawedziach
     vals = np.zeros(len(mesh.list_kr))          # lista wartosci 0 i dl odpowiadajacej ilosci krawedzi
     for i,kraw in enumerate(mesh.list_kr):      # dla kazdej krawedzi
-        #print kraw
         p1, p2 = mesh.xy[kraw[:2]]              # zczytaj punkty krawedzi  (dwie pierwsze liczby z list_kr) i pobierz ich wsp x , y
         pc = (p1 + p2)/2. - [0.5, 0.5]          # wektor od srodka obszaru do srodka krawedzi
-        #print pc
         r = np.sqrt(pc.dot(pc))
         #r = (pc[1]**2 + pc[0]**2)**0.5
-        #print "r= ", r
         tan = np.array([-pc[1], pc[0]])         # normalna do pc[x, y] = pcn[-y, x]
-        #print "normalny", tan
         tan = tan / np.sqrt(tan.dot(tan))       # kierunek normalej
-        #print "normalny wersor", tan
-        U = tan*r*110      # razy wsp.
-        #print "predkosc:", U
+        U = velcity_function(pc, tan, r)      # razy wsp.
         vals[i] = U.dot(mesh.edge_normal(i))    # rzut na normalna do konkretnej krawedzi
-        #print "rzut na normalna do kr.", vals[i]
+
     return vals
 
 def generate_phi_1(mesh):                         # po sr. krawedzi w kierunku -x
     vals = np.zeros(len(mesh.list_kr))          # lista wartosci 0 i dl odpowiadajacej ilosci krawedzi
     for i,kraw in enumerate(mesh.list_kr):      # dla kazdej krawedzi
-        #print kraw
         p1, p2 = mesh.xy[kraw[:2]]              # zczytaj punkty krawedzi  (dwie pierwsze liczby z list_kr) i pobierz ich wsp x , y
         pc = (p1 + p2)/2.                       # srodek krawedzi
         U = [10, 0]
         U = np.array([U[0], U[1]])
-        #print "predkosc:", U
         vals[i] = U.dot(mesh.edge_normal(i))    # rzut na normalna do konkretnej krawedzi - phi
-        #print "rzut na normalna do kr.", vals[i]
     return vals
 
 
