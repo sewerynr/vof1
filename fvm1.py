@@ -74,7 +74,7 @@ def siatka_regularna_prost(n, dx, dy, x0, y0):
     # Definicja 1 komorki: [ nr wz1, nr wz2, nr wz3, nr wz4 ]
 
 
-def laplace(field):
+def laplace(field, dt):
     n, lista_kra = field.mesh.n, field.mesh.list_kr
     macierz_K_e = np.array([[0.]*n]*n)
 
@@ -84,28 +84,28 @@ def laplace(field):
     for kraw in lista_kra:
         if kraw[3] > -1:                                                                         # jesli nie scianka brzegowa to wieksze niz -1
             k1, k2, c1, c2 = kraw                                                                # przypisz k1 k2 c1 c2 co stoi w wierszu macierzy lista_kr znanej jako kraw
-            cc1 = sum(field.mesh.xy[field.mesh.cells[c1], :]) / len(field.mesh.cells[c1])        #srodki komomurek pobiera numery wezlow z cells i wczytuje wsp z wsp_wezl
+            cc1 = sum(field.mesh.xy[field.mesh.cells[c1], :]) / len(field.mesh.cells[c1])        # srodki komomurek pobiera numery wezlow z cells i wczytuje wsp z wsp_wezl
             cc2 = sum(field.mesh.xy[field.mesh.cells[c2], :]) / len(field.mesh.cells[c2])        # pod cc1 i cc2 zapisuje wsp srodkow jako wektor [x,y]
-            a = wspolczynnik_d(cc2, cc1, field.mesh.xy[k1, :], field.mesh.xy[k2, :])             #licze wsp dla konkretnej scianki (jeden krok petli odpowiada jednej krawedzi )
-            f1 = c2                               #sasiad
-            c = c1                                #wlasciciel
-            macierz_K_e[c, c] += - a              #to co odp wlascicielowi
-            macierz_K_e[c, f1] += a               # to co odp sasiadowi z przeciwnym znakiem
+            a = wspolczynnik_d(cc2, cc1, field.mesh.xy[k1, :], field.mesh.xy[k2, :])             # licze wsp dla konkretnej scianki (jeden krok petli odpowiada jednej krawedzi )
+            f1 = c2                               # sasiad
+            c = c1                                # wlasciciel
+            macierz_K_e[c, c] += - a * dt / field.mesh.cell_area[c]           # to co odp wlascicielowi
+            macierz_K_e[c, f1] += a * dt / field.mesh.cell_area[c]             # to co odp sasiadowi z przeciwnym znakiem
             # kazda krawedz tylko raz ale ma sasiada odwracamy i wpisujemy dla sasaiada
             f1 = c1
             c = c2
-            macierz_K_e[c, c] += - a              # macierz_K_e[c2,c2]
-            macierz_K_e[c, f1] += a               # macierz_K_e[c2,c1]
+            macierz_K_e[c, c] += - a * dt / field.mesh.cell_area[c]             # macierz_K_e[c2,c2]
+            macierz_K_e[c, f1] += a * dt / field.mesh.cell_area[c]              # macierz_K_e[c2,c1]
 
     rhs = np.zeros((n, 1))
 
-    field.apply_bc_diffusiveFlux(macierz_K_e, rhs)
+    field.apply_bc_diffusiveFlux(macierz_K_e, rhs, dt)
 
     return macierz_K_e, rhs
 
 
     #   div to adwekcja
-def div(phi, field):                                    # phi to pole predkosci na scianach skalarne bo przemnozone skalarnie razy wektor normalny (ro * wektor predkosci * wekt normalny) = phi
+def div(phi, field, dt):                                    # phi to pole predkosci na scianach skalarne bo przemnozone skalarnie razy wektor normalny (ro * wektor predkosci * wekt normalny) = phi
     n, lista_kra = field.mesh.n, field.mesh.list_kr     # lista kr: [ 1 0 0 1]  = [pkt1 pkt2 wl sasiad]
     D = np.array([[0.] * n] * n)                        # tablica 2D nxn
     Rhs = np.zeros((n,1))                               # wektor prawych stron  zainicjalizowny zerami
@@ -113,8 +113,8 @@ def div(phi, field):                                    # phi to pole predkosci 
 
     for i, k in enumerate(mesh.list_kr):                # i - numer  k - krawedz   Wszystko powtarzane dla kazdej krawedzi
         w, s = k[2:]                                    # zczytuje wlascicel, sasiad danej krawedzi i
-        edgeLen = np.array(mesh.edge_vector(i))         #liczy wektor krawedziowy i
-        edgeLen = np.sqrt(edgeLen.dot(edgeLen))         #liczy dlugosc krawedzi dla konkretnego wektora krawedziowego( v*n*T*dl = phi*T*A)
+        edgeLen = np.array(mesh.edge_vector(i))         # liczy wektor krawedziowy i
+        edgeLen = np.sqrt(edgeLen.dot(edgeLen))         # liczy dlugosc krawedzi dla konkretnego wektora krawedziowego( v*n*T*dl = phi*T*A)
         phiEdge = phi[i]                                # pobiera wartosci predkosci z macierzy phi[dla elementu i]
         #print phiEdge
         #print "edg length", edgeLen
@@ -122,34 +122,34 @@ def div(phi, field):                                    # phi to pole predkosci 
         #!!!!!!!!!!!!!!!!!!!!!!!!!!!! Wiersz mowi ktora komorka kolumna co i skad wlata wylata  (strumien o jakiejs temp)   !!!!!!!!!!!!!!!!!!!!!!!!!!
 
         # Upind
-        # if k[3] > -1:
-            # if phiEdge > 0:  # od wlasiciela do sasiada
-            #     D[w, w] -= phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
-            #     D[s, w] += phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
-            # elif phiEdge == 0:
-            #     pass
-            # else:   # phiedge < 0 mniejsze od sasiada do wlasciciela
-            #     D[s, s] += phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [od sasiada , z temp sasiada]
-            #     D[w, s] -= phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [do wl , temp sasiada]
-
-        #Central
         if k[3] > -1:
             if phiEdge > 0:  # od wlasiciela do sasiada
-                D[w, w] -= phiEdge * edgeLen / 2         # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
-                D[w, s] -= phiEdge * edgeLen / 2         # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
-
-                D[s, s] += phiEdge * edgeLen / 2         # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
-                D[s, w] += phiEdge * edgeLen / 2         # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
+                D[w, w] -= phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
+                D[s, w] += phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
             elif phiEdge == 0:
                 pass
             else:   # phiedge < 0 mniejsze od sasiada do wlasciciela
-                D[s, s] += phiEdge * edgeLen / 2        # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
-                D[s, w] += phiEdge * edgeLen / 2        # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
+                D[s, s] += phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [od sasiada , z temp sasiada]
+                D[w, s] -= phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [do wl , temp sasiada]
 
-                D[w, w] -= phiEdge * edgeLen / 2        # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
-                D[w, s] -= phiEdge * edgeLen / 2        # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
+        #Central
+        # if k[3] > -1:
+        #     if phiEdge > 0:  # od wlasiciela do sasiada
+        #         D[w, w] -= phiEdge * edgeLen / 2         # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
+        #         D[w, s] -= phiEdge * edgeLen / 2         # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
+        #
+        #         D[s, s] += phiEdge * edgeLen / 2         # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
+        #         D[s, w] += phiEdge * edgeLen / 2         # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
+        #     elif phiEdge == 0:
+        #         pass
+        #     else:   # phiedge < 0 mniejsze od sasiada do wlasciciela
+        #         D[s, s] += phiEdge * edgeLen / 2        # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
+        #         D[s, w] += phiEdge * edgeLen / 2        # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
+        #
+        #         D[w, w] -= phiEdge * edgeLen / 2        # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
+        #         D[w, s] -= phiEdge * edgeLen / 2        # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
 
-    field.apply_bc_convectiveFlux(D, Rhs, phi)
+    field.apply_bc_convectiveFlux(D, Rhs, phi, dt)
 
     return D, Rhs
 
@@ -249,6 +249,56 @@ def draw_edges(wsp_wezl, lista_kr):
     # plt.show()
 
 
+def animate_contour_plot(framesDatas, sizeX=(0, 1), sizeY=(0, 1), dataRange=None, nLevels=10, skip=1, repeat=False, interval=5):
+    """
+    Function which make animation from set of 2D data on cartesian grid
+    :param framesDatas: List of 2D numpy.arrays containing nodal values
+    :param sizeX: tuple holding domain range in X dir
+    :param sizeY: tuple holding domain range in Y dir
+    :param skip: number of frames to be skipped
+    :param nLevels: number of color levels
+    :param dataRange: tuple holding min and max value for data range to be displayed in plot and colorbar
+    :return: None
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from matplotlib import animation
+
+    if len(framesDatas) == 0:
+        raise Exception("Data frames number should be at least one")
+
+    Nx, Ny = framesDatas[0].shape
+
+    X, Y = np.meshgrid(np.linspace(sizeX[0], sizeX[1], Nx), np.linspace(sizeY[0], sizeY[1], Ny))
+
+    if not dataRange:
+        minD = min(framesDatas[0].flatten())
+        maxD = max(framesDatas[0].flatten())
+    else:
+        minD, maxD = dataRange
+
+    fig = plt.figure()
+    plt.axes().set_aspect('equal', 'datalim')
+    ticks = np.linspace(minD, maxD, nLevels + 1)
+    cs = plt.contourf(X, Y, framesDatas[0], ticks)
+    cbar = fig.colorbar(cs, ticks=ticks)
+    cbar.ax.set_yticklabels(map(str, ticks))
+
+    if len(framesDatas) > 1:
+        def animate(i):
+            i = i * skip
+            cs = plt.contourf(X, Y, framesDatas[i], ticks)
+            # cbar.ax.set_yticklabels(map(str, ticks))
+            # cbar.update_ticks()
+
+            cs.zmin = minD
+            cs.zmmax = maxD
+            plt.title('Frame %d' % (i + 1))
+            return cs
+
+        anim = animation.FuncAnimation(fig, animate, frames=len(framesDatas) / skip, interval=interval, repeat=repeat)
+
+    plt.show()
 
 # for id, cell in enumerate(k_ids):
 #     print id, cell

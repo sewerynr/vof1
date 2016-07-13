@@ -6,10 +6,16 @@ from interpolacja import *
 
 DlPrzX = 1.; DlPrzY = 1.
 
-n = 32                                                     # ilosc podzialow
+n = 26                                                     # ilosc podzialow
 
 dx = DlPrzX/n
 dy = DlPrzY/n
+
+dt = 0.01                                                 # CFL u*dt/dx <= 1
+tp = 0
+tk = 1
+
+nt = (tk - tp)/dt
 
 x0, y0, dl = (0, 0, 0)
 
@@ -24,16 +30,15 @@ T = SurfField(mesh)                                       # tworzy obiekt klasy 
 
 #print mesh.cell_centers
 
-T.data = 1                                                # [:] do listy przypisze wartosc 0, samo = przypisze inny obiekt   przypisuje wszedzie wartosc 0
 
 Tdir = 1
-TdirWB = 1
+TdirWB = 0
 
 #T.setBoundaryCondition(Neuman(mesh, 0, 0))               # zero odpowiada zerowej krawedzi pobiera obiekt klasy Dirichlet (wywoluje go i tworzy)
 T.setBoundaryCondition(Dirichlet(mesh, 0, TdirWB))
 
-T.setBoundaryCondition(Neuman(mesh, 1, 0))
-#T.setBoundaryCondition(Dirichlet(mesh, 1, TdirWB))
+#T.setBoundaryCondition(Neuman(mesh, 1, 0))
+T.setBoundaryCondition(Dirichlet(mesh, 1, TdirWB))
 
 #T.setBoundaryCondition(Neuman(mesh, 2, 0))
 T.setBoundaryCondition(Dirichlet(mesh, 2, TdirWB))
@@ -46,66 +51,64 @@ T.setBoundaryCondition(Dirichlet(mesh, 3, TdirWB))
 # T.setBoundaryCondition(d)
 
 
-M, F = laplace(T)                                        # ukladanie macierzy i wektora prawych stron laplace
-Mc, Fc = div(generate_phi(mesh), T)                      # ukladanie macierzy i wektora prawych stron, dostaje D i Rhs z div
+M, F = laplace(T, dt)                                        # ukladanie macierzy i wektora prawych stron laplace
+Mc, Fc = div(generate_phi(mesh), T, dt)                      # ukladanie macierzy i wektora prawych stron, dostaje D i Rhs z div
 
 np.set_printoptions(precision=3)
 
-#
-print Mc
-M = M*(1.000001) + Mc
+#print M
+#M = M*(1.000001) + Mc*(0)
 
-F = F*(1.000001) + Fc
+#F = F*(1.000001) + Fc*(0)
 np.set_printoptions(precision=3)
-print Fc
+#print Fc
 
 pkt1 = n/2 + n*n/2                       # pkt srodek
 pkt2 = n/2 + n*8                         # srodek 4 wiersze od spodu
 pkt3 = n/2 + n*(n-8)                     # srodek 4 wiersze od gory
 
-F[pkt1] = -10
-#F[pkt2] = -10
-#F[pkt3] = -11
+F[pkt1] += -100
+#F[pkt2] += -100
+#F[pkt3] += -100
+#print F
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!! steady solution !!!!!!!!!!!!!!!!!!!!!!
+# T.data[:] = 0                          # War. Pocz. # [:] do listy przypisze wartosc 0, samo = przypisze inny obiekt przypisuje wszedzie wartosc 0
+#
+# F = F + T.data
+#
+# A = solve(M, F)                        # rozw uklad rownan
+#
+# T.setValues(A)                         # pole temp do aktualizacji wartosci temp w WB Neumana
 
-A = solve(M, F)                        # rozw uklad rownan
-
-T.setValues(A)                         # pole temp do aktualizacji wartosci temp w WB Neumana
-
-# print T.data
+#print T.data
 # print A
 
-draw_values_edges(mesh.xy, mesh.cells, mesh.list_kr, T, n, DlPrzX, DlPrzY, Tdir)
-# draw_edges(mesh.xy, mesh.list_kr)
-
-#print "poch", (T.boundaries[0].data[n/2] - T[n/2])/(dy/2)
-#
-# plt.figure()
-# plt.plot(T.boundaries[0].data,color="blue")
-# plt.plot(T[:n], color="green")
-# plt.plot(T[n:2*n], color="red")
-# plt.show()
+#draw_values_edges(mesh.xy, mesh.cells, mesh.list_kr, T, n, DlPrzX, DlPrzY, Tdir)
+# # draw_edges(mesh.xy, mesh.list_kr)
 
 
-#index_draw_cell( mesh.xy, mesh.cells)
 
-#draw_values_centers(dx, dy, DlPrzX, DlPrzY, n, A)
+I = np.matrix(np.identity(n*n))
+M = I - M
 
+T.data[:] = 0                          # War. Pocz. # [:] do listy przypisze wartosc 0, samo = przypisze inny obiekt przypisuje wszedzie wartosc 0
+Fconst = F
+F = - Fconst + T.data
 
-# Nt = 10
-# dt = 1./(Nt-1)
-#
-# Mass = np.zeros((n*n, n*n))
-# Mass[range(n), range(n)] = 1./dt
+Results = list()
+Tn = T.data.reshape((n, n))
+Results.append(Tn)
+for iter in range(int(nt)):
+#   print 'time iteration:',iter
 
+    T.data = np.array(np.linalg.solve(M, F))
+    F = -Fconst + T.data
+    Tn = T.data.reshape((n, n))
+    Results.append(Tn)
+    # print T
 
-# def anim(t):
-#     Fc = np.copy(F) + T.data/dt
-#     X = solve(M, F)
-#     T.setValues(X)
-#     draw_values_edges(mesh.xy, mesh.cells, mesh.list_kr, T, n, DlPrzX, DlPrzY, Tdir)
-#
-# from matplotlib.animation import FuncAnimation
-# fig = plt.figure()
-# animation = FuncAnimation(fig, anim, frames=range(Nt))
-#
-# plt.show()
+# Animate results:
+animate_contour_plot(Results, skip=1, repeat=False, interval=200, dataRange=[0, 10])
+
+#draw_values_edges(mesh.xy, mesh.cells, mesh.list_kr, T, n, DlPrzX, DlPrzY, Tdir)
+#draw_edges(mesh.xy, mesh.list_kr)
