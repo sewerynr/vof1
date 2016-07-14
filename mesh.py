@@ -1,11 +1,16 @@
+from duplicity.pexpect import which
+
 import numpy as np
+import time
 
 def iterExtra(tab):     #  bierze wiersz z cells np. [0 1 11 12]  i dodaje do niego na koncu pierwszy element [0 1 11 12 0]
     for i in tab:
         yield i
     yield tab[0]
 
+
 class Mesh:
+
     """obiekt_operujcy_na_danych_punktach_siatki"""
     def __init__(self, nodes, cells, boundaries):
         self.xy = nodes
@@ -16,11 +21,17 @@ class Mesh:
         # self.__wsp_dl__ = None  # tez do (*****)
 
         self.cell_area = self.__cell_area__()
+
         self.list_kr = self.__lista_krawedzi__()
+
         self.list_kr = self.__wlasciciel_sasiad__(self.list_kr)
+
         self.boundaries_points = boundaries
         self.boundaries = self.__bound_to_edge_bound__(boundaries)
+
+        self.boundaries_points = boundaries
         self.cell_centers = self.__cell_center__()
+
         # self.boundaries = boundaries
 
     #gdy chcemy wywolac prywatna funkcje ale dopiero gdy ktos o nia zapyta (dostanie wtedy macierz) (*****)
@@ -30,15 +41,21 @@ class Mesh:
     #         self.__wsp_dl__ = self.__wektor_wsp_idl__()
     #     return self.__wsp_dl__
 
+
+
+
     def __cell_center__(self):
 
         cc = np.array([[0.] * 2] * (self.n))  # cell centers _ srodki komorek
         for i, cell in enumerate(self.cells):
             c1, c2, c3, c4 = self.cells[i]
-            cc[i][0] = (self.xy[c1][0] + self.xy[c2][0] + self.xy[c3][0] + self.xy[c4][0]) / len(self.cells[i])  # srodki komomorek pobiera numery wezlow z cells i wczytuje wsp z wsp_wezl
-            # print len(cells[i])
+            dl = len(self.cells[i])
+            cc[i][0] = (self.xy[c1][0] + self.xy[c2][0] + self.xy[c3][0] + self.xy[c4][0]) / dl  # srodki komomorek pobiera numery wezlow z cells i wczytuje wsp z wsp_wezl
+
             cc[i][1] = (self.xy[c1][1] + self.xy[c2][1] + self.xy[c3][1] + self.xy[c4][1]) / len(self.cells[i])  # srodki komomorek pobiera numery wezlow z cells i wczytuje wsp z wsp_wezl
         return cc
+
+
 
     def __cell_area__(self):
         area = np.zeros(self.n)
@@ -52,12 +69,16 @@ class Mesh:
         # print area
         return area
 
+
+
     def area_from_coordinates(self, coord_list):
         area = 0
         n = len(coord_list)
         for i in range(0, n - 2, 2):
             area += 0.5 * (coord_list[i + 2] + coord_list[i]) * (coord_list[i + 3] - coord_list[i + 1])
         return area
+
+
 
     # zapisuje 4 war brzegowe jako liste z numerami krawedzi
     def __bound_to_edge_bound__(self, boundaries):                      # boundaries zawiera 4 krawedzie z siatki reg prost
@@ -70,6 +91,7 @@ class Mesh:
                         bond_to_edge[idBoundry][idBEdge] = idEdge       # przypisz krawedzi jej numer jesli punky sobie odpowiadaja
         #print bond_to_edge
         return bond_to_edge
+
 
 
     def edge_vector(self, edgeId):
@@ -110,8 +132,6 @@ class Mesh:
 
     def edge_normal(self, i):                            # i indeks krawedzi   liczy normalna do krawedzi zapisanej w liscie pod indeksem i
         def_edge = self.list_kr[i, :2]                   # wyciagam numery (indeksy) punktow z ktorch sklada sie dana krawedz  dwa pierwsze elementy wiersza
-        #print i
-        #print self.xy[def_edge[1]], self.xy[def_edge[0]]
         wektor = self.xy[def_edge[1]] - self.xy[def_edge[0]]
 
         return self.wektor_norm(*wektor)                 # pierwszy z wektor to pierwsza zmienna itd
@@ -128,12 +148,14 @@ class Mesh:
 
             ilosc = lista_kr.shape[1]                   # ilosc kolumn ( w cells ilosc kolumn odp ilosci krawedzi )
             for licz in range(0, ilosc, 1):
-
                 if licz < ilosc -1:
                     lista_kr[i * ilosc + licz] = [cell[licz], cell[licz + 1], i, -1]
                 elif licz == ilosc -1:
                     lista_kr[i * ilosc + licz] = [cell[licz], cell[licz - (ilosc - 1)], i, -1]
+
         return lista_kr                                 # [ 1 0 0 1]  = [pkt1 pkt2 wl sasiad]
+
+
 
     def __wlasciciel_sasiad__(self, lista_krawedzi):
         # do k_ids przypisuje dwie kolumny ze wszystkich wierszy czyli numery wezlow tworzacych krawedzie
@@ -142,10 +164,31 @@ class Mesh:
         # tworze liste o nazwie pairs (do listy() mozna dopisywac elementy przez pairs.append() )
         pairs = list()
 
-        for i1, k in enumerate(k_ids):
-            for i2, j in enumerate(k_ids):
-                if k[0] == j[1] and k[1] == j[0]:
-                    pairs.append((i1, i2))
+
+        start = time.clock()
+
+        print k_ids.shape
+
+        ids = np.array(range(k_ids.shape[0]))
+
+        mask = k_ids[:, 0] == k_ids[:, 1]
+
+        for i1, k in enumerate(k_ids.tolist()):
+            m1 = k[0] == k_ids[:, 1]
+            m2 = k[1] == k_ids[:, 0]
+            m = m1*m2
+            id = np.argwhere(m).flatten()
+
+            if id.shape[0] > 0:
+                pairs.append((i1, int(id[0])))
+
+            # for i2, flag in enumerate(m.tolist()):
+            #     if flag:
+            #         pairs.append((i1, i2))
+
+        print ">>>>>>>>> ", time.clock() - start
+        start = time.clock()
+
 
         do_wyrzucenia = list()
         count = 0
@@ -156,6 +199,9 @@ class Mesh:
                 # wlas podobnej kraw. staje sie sasiadem w krawedzi procesowanej
                 lista_krawedzi[p[0], 3] = lista_krawedzi[p[1], 2]
                 do_wyrzucenia.append(p[1])
+
+        print ">>>>>>>>> ", time.clock() - start
+        start = time.clock()
 
         # wybiera tak aby sie nie powtarzaly
         # sprawdza czy numer krawedzi z lista_kr jest w do_wyrzucenia jesli nie to dopisuje do uniklnych i nadpisuje stara tablice lista_kr nowa bez powtarzajacych sie
@@ -169,5 +215,9 @@ class Mesh:
         # lista_kr_all = lista_krawedzi
         lista_krawedzi = np.array(list_kr_unik)
 
+        print ">>>>>>>>> ", time.clock() - start
+        start = time.clock()
+
         del list_kr_unik, do_wyrzucenia
         return lista_krawedzi
+
