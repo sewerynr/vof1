@@ -34,8 +34,6 @@ start = time.clock()
 
 T = SurfField(mesh)                                       # tworzy obiekt klasy SurfField, pobierajacy obirkt mesh klasy Mesh ( na tej siatce ma tworzyc i przechowywac rozwiazanie (wartosci))
 
-#print mesh.cell_centers
-
 
 Tdir = 1
 TdirWB = 0
@@ -62,7 +60,7 @@ M, F = laplace(T)                                        # ukladanie macierzy i 
 M = M * dt
 F = F * dt
 
-Mc, Fc = div(generate_phi_r(mesh, quadratic_velocity), T)                      # ukladanie macierzy i wektora prawych stron, dostaje D i Rhs z div
+Mc, Fc = div(generate_phi_1(mesh, quadratic_velocity), T)                      # ukladanie macierzy i wektora prawych stron, dostaje D i Rhs z div
 
 Mc = Mc * dt
 Fc = Fc * dt
@@ -74,15 +72,14 @@ M = M*(1) + Mc*(1)
 F = F*(1) + Fc*(1)
 
 np.set_printoptions(precision=3)
-#print Fc
 
 pkt1 = n/2 + n*n/2                       # pkt srodek
 pkt2 = n/2 + n*5                         # srodek 4 wiersze od spodu
 pkt3 = n/2 + n*(n-5)                     # srodek 4 wiersze od gory
 
 #F[pkt1] += -300
-#F[pkt2] += -200
-#F[pkt3] += -200
+F[pkt2] += -200
+F[pkt3] += -200
 
 
 I = np.matrix(np.identity(n*n))
@@ -91,9 +88,10 @@ M = I - M
 T.data[:] = 0                          # War. Pocz. # [:] do listy przypisze wartosc 0, samo = przypisze inny obiekt przypisuje wszedzie wartosc 0
 Fconst = -F
 
-for i, point in enumerate(T.data):
-    if i < (n**2)/2:
-        T.data[i] = 10
+# wypelnij polowe temperatura
+# for i, point in enumerate(T.data):
+#     if i < (n**2)/2:
+#         T.data[i] = 10
 
 
 print ">>>> Equations generated in " , time.clock()-start

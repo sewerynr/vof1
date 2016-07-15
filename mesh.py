@@ -167,7 +167,7 @@ class Mesh:
 
         start = time.clock()
 
-        print k_ids.shape
+        #print k_ids.shape
 
         ids = np.array(range(k_ids.shape[0]))
 

@@ -4,6 +4,8 @@ from fvm1 import *
 from field import *
 from interpolacja import *
 
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!  Stale w czasie !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 DlPrzX = 1.; DlPrzY = 1.
 
 n = 40                                                     # ilosc podzialow
@@ -51,9 +53,9 @@ Mc, Fc = steady_div(generate_phi_r(mesh, quadratic_velocity), T)                
 np.set_printoptions(precision=3)
 
 #print Mc
-M = M*(0) + Mc*(1)
+M = M*(1) + Mc*(1)
 
-F = F*(0) + Fc*(1)
+F = F*(1) + Fc*(1)
 np.set_printoptions(precision=3)
 #print Fc
 

@@ -83,7 +83,7 @@ class Dirichlet(EdgeField):                                         # clasa dla 
             Rhs[c] += -self.data[i] * ad / self.field.mesh.cell_area[c]                # data odp komorce
 
 
-    def sInsertDiffusiveFlux(self, data, indices, rhs):
+    def sInsertDiffusiveFlux(self, sMat, rhs):
         for i, _ in enumerate(self.mesh.boundaries[self.id]):
             id_edge = self.mesh.boundaries[self.id, i]  # indeks krawedzi w WB
             field = self.field
@@ -95,8 +95,7 @@ class Dirichlet(EdgeField):                                         # clasa dla 
             ad = wspolczynnik_d(ck3, cc1, field.mesh.xy[nr_kr_1, :],
                                 field.mesh.xy[nr_kr_2, :])  # pobiera wsp punkt z ktorych sklada sie krawedz
 
-            data[c].append(-ad / self.field.mesh.cell_area[c])
-            indices[c].append(c)
+            sMat.addEntry(c, c, -ad / self.field.mesh.cell_area[c])
             rhs[c] += -self.data[i] * ad / self.field.mesh.cell_area[c]  # data odp komorce
 
 
@@ -299,7 +298,7 @@ class SurfField:                                     # to jest po prostu field z
 
 
 def quadratic_velocity(pc, tanPc, r):
-    U = 2.
+    U = 10.
     if r <= 1:
         return tanPc*U*(-(r-0.5)**2+1)
     else:

@@ -74,11 +74,11 @@ def siatka_regularna_prost(n, dx, dy, x0, y0):
     # Definicja 1 komorki: [ nr wz1, nr wz2, nr wz3, nr wz4 ]
 
 
-def sLaplace(field, dt):
+from fvMatrix import fvMatrix
+def sLaplace(field):
     n, lista_kra = field.mesh.n, field.mesh.list_kr
 
-    data = [list() for c in range(field.mesh.n)]
-    indices = [list() for c in range(field.mesh.n)]
+    mat = fvMatrix(field.mesh)
 
     # przelec po wszystkich komorkach w kazdej obl wartosci wspolczynnikow po czym dla kazdej utworz wiersz w macierzy sztywnosci
     #def wspolczynnik_d(f, c, k1 ,k2)
@@ -92,58 +92,34 @@ def sLaplace(field, dt):
             f1 = c2                               # sasiad
             c = c1                                # wlasciciel
 
-            data[c].append(- a / field.mesh.cell_area[c])
-            data[c].append( a / field.mesh.cell_area[c] )
-            indices[c].append(c)
-            indices[c].append(f1)
+            a = a / field.mesh.cell_area[c]
+
+            mat[c, c] += - a
+            mat[c, f1] += a
+
+            # mat.addEntry(c, c, - a/field.mesh.cell_area[c])
+            # mat.addEntry(c, f1,   a/field.mesh.cell_area[c])
 
             # kazda krawedz tylko raz ale ma sasiada odwracamy i wpisujemy dla sasaiada
             f1 = c1
             c = c2
-            data[c].append(- a / field.mesh.cell_area[c])
-            data[c].append(a / field.mesh.cell_area[c])
-            indices[c].append(c)
-            indices[c].append(f1)
+
+            mat[c, c] += - a
+            mat[c, f1] += a
+
 
     rhs = np.zeros((n, 1))
 
-    field.sApply_bc_diffusiveFlux(data, indices, rhs)
-
-    for row in data:
-        for i,_ in enumerate(row):
-            row[i] = -row[i]*dt
-
-    for c, (dRow, iRow) in enumerate(zip(data, indices)):
-        dRow.append(1.)
-        iRow.append(c)
+    field.sApply_bc_diffusiveFlux(mat.data, mat.indices, rhs)
 
 
-    rowLengths = [0]
-    sumLen = 0
-    for d in data:
-        sumLen += len(d)
-        rowLengths.append(sumLen)
+    #  To bylo dodawnie 1 z I do diagonali:
 
-    size = sum(rowLengths)
-    vectorData = np.array([0. for i in range(size)])
-    vectorIndices = np.array([0 for i in range(size)])
+    # for c, (dRow, iRow) in enumerate(zip(data, indices)):
+    #     dRow.append(1.)
+    #     iRow.append(c)
 
-    c=0
-    for row in data:
-        for val in row:
-            vectorData[c] = val
-            c += 1
-
-    c=0
-    for row in indices:
-        for val in row:
-            vectorIndices[c] = val
-            c += 1
-
-
-    from scipy.sparse import csr_matrix
-
-    return csr_matrix((vectorData, vectorIndices, rowLengths)), rhs
+    return mat, rhs
 
 # to do zmiennej w czasie
 def steady_laplace(field):
@@ -176,9 +152,9 @@ def steady_laplace(field):
     return macierz_K_e, rhs
 
 # ta do ustalonej w czasie
-def laplace(field):
+def laplace(field, matrixProvider = lambda mesh: np.array([[0.] * mesh.n] * mesh.n) ):
     n, lista_kra = field.mesh.n, field.mesh.list_kr
-    macierz_K_e = np.array([[0.] * n] * n)
+    macierz_K_e = matrixProvider(field.mesh)
 
     # przelec po wszystkich komorkach w kazdej obl wartosci wspolczynnikow po czym dla kazdej utworz wiersz w macierzy sztywnosci
     # def wspolczynnik_d(f, c, k1 ,k2)
@@ -209,9 +185,9 @@ def laplace(field):
     return macierz_K_e, rhs
 
     #   div to adwekcja ta do zmiennej w czasie
-def div(phi, field):                                    # phi to pole predkosci na scianach skalarne bo przemnozone skalarnie razy wektor normalny (ro * wektor predkosci * wekt normalny) = phi
+def div(phi, field, matrixProvider = lambda mesh: np.array([[0.] * mesh.n] * mesh.n)):                                    # phi to pole predkosci na scianach skalarne bo przemnozone skalarnie razy wektor normalny (ro * wektor predkosci * wekt normalny) = phi
     n, lista_kra = field.mesh.n, field.mesh.list_kr     # lista kr: [ 1 0 0 1]  = [pkt1 pkt2 wl sasiad]
-    D = np.array([[0.] * n] * n)                        # tablica 2D nxn
+    D = matrixProvider(field.mesh)                        # tablica 2D nxn
     Rhs = np.zeros((n,1))                               # wektor prawych stron  zainicjalizowny zerami
     mesh = field.mesh
 
