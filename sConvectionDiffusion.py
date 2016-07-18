@@ -8,7 +8,7 @@ from interpolacja import *
 
 DlPrzX = 1.; DlPrzY = 1.
 
-n = 100                                                    # ilosc podzialow
+n = 50                                                    # ilosc podzialow
 
 dx = DlPrzX/n
 dy = DlPrzY/n
@@ -28,10 +28,7 @@ import time
 
 node_c, cells, bound = siatka_regularna_prost(n, dx, dy, x0, y0)
 
-start = time.clock()
 mesh = Mesh(node_c, cells, bound)                         # 1. tworzy obiekt mesh klasy Mesh, 2. generujemy siatke dla tego obiektu funkcja siatka_reg...
-print ">>>> Mesh generated in " , time.clock()-start
-start = time.clock()
 
 
 T = SurfField(mesh)                                       # tworzy obiekt klasy SurfField, pobierajacy obirkt mesh klasy Mesh ( na tej siatce ma tworzyc i przechowywac rozwiazanie (wartosci))
@@ -73,22 +70,21 @@ Md, Fd = laplace(T, fvMatrix)#sLaplace(T)                                       
 
 Mc, Fc = div(generate_phi_r(mesh, quadratic_velocity), T, fvMatrix)                      # ukladanie macierzy i wektora prawych stron, dostaje D i Rhs z div
 
-M = fvMatrix.diagonal(mesh) - Md*(dt*0.1) + Mc*dt
+M = fvMatrix.diagonal(mesh) - Md*(dt*0.2) + Mc*dt
 
-Fconst = (-Fd*0.1 + Fc)*dt
+Fconst = (-Fd*0.2 + Fc)*dt
 
 Fconst[pkt2] += 20000*dt
 Fconst[pkt3] += 20000*dt
 
 
 T.data[:] = 0                          # War. Pocz. # [:] do listy przypisze wartosc 0, samo = przypisze inny obiekt przypisuje wszedzie wartosc 0
+
+# do polowy przypisuje wartosc T = 10
 # for i, point in enumerate(T.data):
 #     if i < (n**2)/2:
 #         T.data[i] = 10
 
-
-print ">>>> Equations generated in " , time.clock()-start
-start = time.clock()
 
 Results = list()
 Tn = T.data.reshape((n, n))
@@ -96,6 +92,7 @@ Results.append(Tn)
 
 
 from scipy.sparse.linalg.isolve.iterative import bicgstab
+
 
 for iter in range(int(nt)):
     print 'time iteration:',iter
@@ -109,10 +106,12 @@ for iter in range(int(nt)):
     Tn = T.data.reshape((n, n))
     Results.append(Tn)
 
-print ">>>> Solved in ", time.clock()-start
-
 # Animate results:
 animate_contour_plot(Results, skip=10, repeat=False, interval=75, dataRange=[0, 10])
 
 #draw_values_edges(mesh.xy, mesh.cells, mesh.list_kr, T, n, DlPrzX, DlPrzY, Tdir)
 #draw_edges(mesh.xy, mesh.list_kr)
+
+
+# start = time.clock()
+# print ">>>> Solved in ", time.clock()-start

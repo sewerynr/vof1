@@ -61,7 +61,7 @@ T.setBoundaryCondition(Neuman(mesh, 3, 0))              # symetria na krawedzi 3
 from fvMatrix import fvMatrix
 
 
-M, F = laplace(T, fvMatrix)#sLaplace(T)                                        # ukladanie macierzy i wektora prawych stron laplace
+M, F = laplace(T, fvMatrix)       #sLaplace(T)         # ukladanie macierzy i wektora prawych stron laplace
 
 np.set_printoptions(precision=3)
 

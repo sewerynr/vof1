@@ -29,7 +29,6 @@ class Mesh:
         self.boundaries_points = boundaries
         self.boundaries = self.__bound_to_edge_bound__(boundaries)
 
-        self.boundaries_points = boundaries
         self.cell_centers = self.__cell_center__()
 
         # self.boundaries = boundaries

@@ -4,7 +4,7 @@ from fvm1 import *
 
 
 
-class EdgeField:          # pole dla krawedzi zawiera inf co na krawedziach w konstr pobiera siatke mesh oraz numer krawedzi boundaryId
+class BoundaryField:          # pole dla krawedzi zawiera inf co na krawedziach w konstr pobiera siatke mesh oraz numer krawedzi boundaryId
     def __init__(self, mesh, boundaryId):
         self.data = np.array([0.] * len(mesh.boundaries[boundaryId]))  # inicjuje zerami pobierajac dlugosc z mesh.boundaries[boundaryId]
         self.id = boundaryId       # zapisuje numer krawedzi pod oznaczeniem id
@@ -57,9 +57,9 @@ class EdgeField:          # pole dla krawedzi zawiera inf co na krawedziach w ko
 
 
 
-class Dirichlet(EdgeField):                                         # clasa dla kazdej krawedzi o warunku dirich
+class Dirichlet(BoundaryField):                                         # clasa dla kazdej krawedzi o warunku dirich
     def __init__(self, mesh, bId, fi=0):
-        EdgeField.__init__(self, mesh, bId)
+        BoundaryField.__init__(self, mesh, bId)
         self.data[:] = fi
         self.id = bId                                               # zapisuje numer krawedzi pod oznaczeniem id
         self.mesh = mesh
@@ -144,9 +144,9 @@ class Dirichlet(EdgeField):                                         # clasa dla 
                 Tbrzeg = self.data[i]
                 Rhs[c] += Tbrzeg * phiEdge * edgeLen
 
-class Neuman(EdgeField):                                        # klasa dla kazdej krawedzi o warunku neuman
+class Neuman(BoundaryField):                                        # klasa dla kazdej krawedzi o warunku neuman
     def __init__(self, mesh, bId, derivativeValue ):            # derivativeValue po prostu zadana wart poch na krawedzi WB
-        EdgeField.__init__(self, mesh, bId)
+        BoundaryField.__init__(self, mesh, bId)
 
         self.deriv = derivativeValue
         self.id = bId                                           # zapisuje numer krawedzi pod oznaczeniem id
@@ -253,7 +253,7 @@ class SurfField:                                     # to jest po prostu field z
     def __init__(self, mesh):                        # pobiera mesh a z nim jego rozmiar i boundaries czyli WB
         #self.data = np.array([0.]*mesh.n)           # [0.]*mesh.n lista zer o rozmiarze mesh.n
         self.data = np.zeros((mesh.n, 1))            # zamien lem
-        self.boundaries = [EdgeField(mesh, i) for i, _ in enumerate(mesh.boundaries)]          # (***) lista z pustymi warunkami brzegowymi dodatkowa do przechowania _ zmienna ktorej nikt nie uzyje interesuje nas tylko ilosc nie wartosc
+        self.boundaries = [BoundaryField(mesh, i) for i, _ in enumerate(mesh.boundaries)]          # (***) lista z pustymi warunkami brzegowymi dodatkowa do przechowania _ zmienna ktorej nikt nie uzyje interesuje nas tylko ilosc nie wartosc
         self.mesh = mesh
     # @property
     # def values(self):
@@ -295,6 +295,45 @@ class SurfField:                                     # to jest po prostu field z
     def steady_apply_bc_convectiveFlux(self, EqMat, Rhs, phi):  # ma wrzucic ten warunek na macierz M i rhs
         for b in self.boundaries:  # petla po 4 war brzeg (te brzegi juz zapisalem uzywajac setBoundaryCondition
             b.steady_insertConvectiveFlux(EqMat, Rhs, phi)
+
+
+class EdgeField:
+    def __init__(self, mesh):
+        self.data = np.zeros(len(mesh.list_kr))
+        self.edgesdef = mesh.list_kr
+
+    @staticmethod
+    def interp(surfField):
+
+        mesh = surfField.mesh
+        efield = EdgeField(mesh)
+
+        retField = BoundaryField(mesh, mesh.boundaries)
+
+        for i, kraw in enumerate(mesh.list_kr):
+            if kraw[3] > 0:  # jesli ma sasiada
+                # przypadek szczegolny odl do srodkow krawedzi nie przeciec wektorow
+                # zczytuje z listy_kr wlasciciela i sasiada i pobieram predkosci w ich srodkach komorek jako wektor [x, y]
+                vwl = surfField[kraw[2]]
+                vsas = surfField[kraw[3]]
+
+                # wsp sr kom wl: mesh.cell_centers[kraw[2]]
+                dl = mesh.wsp_wekt_z_wsp(mesh.cell_centers[kraw[3]], mesh.cell_centers[kraw[2]])
+                dl = mesh.dl_wekt(dl[0], dl[1])  # dlugosc miedzy sr komurek
+
+                dlc = mesh.wsp_wekt_z_wsp(mesh.cell_centers[kraw[2]], (mesh.xy[kraw[0]] + mesh.xy[kraw[1]]) / 2)
+                dlc = mesh.dl_wekt(dlc[0], dlc[1])
+
+                dlf = mesh.wsp_wekt_z_wsp(mesh.cell_centers[kraw[3]], (mesh.xy[kraw[0]] + mesh.xy[kraw[1]]) / 2)
+                dlf = mesh.dl_wekt(dlf[0], dlf[1])
+
+                v = vwl * (dlf / dl) + vsas * (dlc / dl)  # przypadek szczegolny
+                efield[i] = v.dot(mesh.edge_normal(i))  # rzut na normalna do konkretnej krawedzi
+            else:  # gdy krawedz brzegowa
+                for bId, bEdges in enumerate(mesh.boundaries):
+                    for eLocalId, e in enumerate(bEdges):
+                        if e == i:
+                            efield[i] = surfField.boundaries[bId][eLocalId]
 
 
 def quadratic_velocity(pc, tanPc, r):
@@ -371,6 +410,29 @@ def generate_phi_r_2(mesh):
 
     #print vals_return
     return vals_return
+
+
+def grad(surfField):
+    mesh = surfField.mesh
+
+    efield = EdgeField.interp(surfField)
+
+    cellGrad = np.zeors((len(mesh.cells),2), dtype=float)
+
+    for e, (defE, valE) in enumerate(zip(mesh.list_kr, efield.data)):
+        P1 = mesh.xy[defE[0]]
+        P2 = mesh.xy[defE[1]]
+        dP = P2 - P1
+        S = [-dP[1], dP[0]]
+        cellGrad[defE[2], :] += valE*S
+
+        if defE[3] > 0:
+            cellGrad[defE[3], :] += -valE*S
+
+    cellGrad[:, 0] = cellGrad[:, 0] / mesh.cell_area
+    cellGrad[:, 1] = cellGrad[:, 1] / mesh.cell_area
+
+    return cellGrad
 
 #
 #
