@@ -178,7 +178,7 @@ def laplace(field, matrixProvider = lambda mesh: np.array([[0.] * mesh.n] * mesh
             macierz_K_e[c, c] += - a / field.mesh.cell_area[c]  # macierz_K_e[c2,c2]
             macierz_K_e[c, f1] += a / field.mesh.cell_area[c]  # macierz_K_e[c2,c1]
 
-    rhs = np.zeros((n, 1))
+    rhs = np.zeros(n)
 
     field.apply_bc_diffusiveFlux(macierz_K_e, rhs)
 
@@ -188,7 +188,7 @@ def laplace(field, matrixProvider = lambda mesh: np.array([[0.] * mesh.n] * mesh
 def div(phi, field, matrixProvider = lambda mesh: np.array([[0.] * mesh.n] * mesh.n)):                                    # phi to pole predkosci na scianach skalarne bo przemnozone skalarnie razy wektor normalny (ro * wektor predkosci * wekt normalny) = phi
     n, lista_kra = field.mesh.n, field.mesh.list_kr     # lista kr: [ 1 0 0 1]  = [pkt1 pkt2 wl sasiad]
     D = matrixProvider(field.mesh)                        # tablica 2D nxn
-    Rhs = np.zeros((n,1))                               # wektor prawych stron  zainicjalizowny zerami
+    Rhs = np.zeros(n)                               # wektor prawych stron  zainicjalizowny zerami
     mesh = field.mesh
 
     for i, k in enumerate(mesh.list_kr):                # i - numer  k - krawedz   Wszystko powtarzane dla kazdej krawedzi
@@ -229,7 +229,7 @@ def div(phi, field, matrixProvider = lambda mesh: np.array([[0.] * mesh.n] * mes
         #         D[w, w] -= phiEdge * edgeLen / (2 * field.mesh.cell_area[w])         # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
         #         D[w, s] -= phiEdge * edgeLen / (2 * field.mesh.cell_area[w])         # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
 
-    field.apply_bc_convectiveFlux(D, Rhs, phi)
+    field.apply_bc_convectiveFlux(D, Rhs, phi.data)
 
     return D, Rhs
 

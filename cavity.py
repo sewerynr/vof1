@@ -53,7 +53,7 @@ Uy.setBoundaryCondition(Dirichlet(mesh, 3, 0))
 
 p.setBoundaryCondition(Neuman(mesh, 0, 0))
 p.setBoundaryCondition(Neuman(mesh, 1, 0))
-p.setBoundaryCondition(Neuman(mesh, 2, 0))
+p.setBoundaryCondition(Dirichlet(mesh, 2, 0))
 p.setBoundaryCondition(Neuman(mesh, 3, 0))
 
 np.set_printoptions(precision=3)
@@ -65,34 +65,60 @@ einterp = EdgeField.interp
 Mxd, Fxd = laplace(Ux, fvMatrix)
 Myd, Fyd = laplace(Uy, fvMatrix)
 
-Mpd, Fpd = laplace(p, fvMatrix)
 
-edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))
-print edgeU.data
-#print mesh.Se
-
-phi = edgeU.dot(mesh.Se)
-
-Mxc, Fxc = div(phi, Ux, fvMatrix)                      # ukladanie macierzy i wektora prawych stron, dostaje D i Rhs z div
-Myc, Fyc = div(phi, Uy, fvMatrix)
+viscosity = 0.001
 
 
-viscosity = 0.1
-
-momX_M = Mxc - Mxd * viscosity
-momY_M = Myc - Myd * viscosity
-
-gradP = grad(p)
-
-momX_F = Fxd - Fxd * viscosity - gradP[:, 0]*mesh.cell_area
-momY_F = Fyd - Fyd * viscosity - gradP[:, 1]*mesh.cell_area
+# momX_M.relax(0.7)
+# momY_M.relax(0.7)
 
 
 from scipy.sparse.linalg.isolve.iterative import bicgstab
 
 
-Ux.data = bicgstab(A=momX_M.sparse, b=momX_F, x0=Ux.data)[0]
-Uy.data = bicgstab(A=momY_M.sparse, b=momY_F, x0=Uy.data)[0]
+edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))  # pole wektorowe predkosci [Ux, Uy] wyinterpolowanych wartosci na krawedzie (ze sr komurek  EdgeField.interp)
+phi = edgeU.dot(mesh.Se)  # phi = v n A  gdzie An tu rowne jest dl_krawedzi obruconej o 90 stopni
+gradP = grad(p)
+
+for i in range(1):
+    print "iter", i
+
+    Mxc, Fxc = div(phi, Ux, fvMatrix)  # ukladanie macierzy i wektora prawych stron, dostaje D i Rhs z div
+    Myc, Fyc = div(phi, Uy, fvMatrix)
+
+    momX_M = Mxc + Mxd * viscosity
+    momY_M = Myc + Myd * viscosity
+
+    momX_F = Fxc + Fxd * viscosity + gradP[:, 0]
+    momY_F = Fyc + Fyd * viscosity + gradP[:, 1]
+
+    Ux.data = bicgstab(A=momX_M.sparse, b=momX_F, x0=Ux.data)[0]
+    Uy.data = bicgstab(A=momY_M.sparse, b=momY_F, x0=Uy.data)[0]
+
+    A = np.array(momX_M.diag)
+
+    Hx = - momX_M.offdiagmul(Ux.data)
+    Hy = - momY_M.offdiagmul(Uy.data)
+
+    Ux.data = Hx / A
+    Uy.data = Hy / A
+
+    edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))  # pole wektorowe predkosci [Ux, Uy] wyinterpolowanych wartosci na krawedzie (ze sr komurek  EdgeField.interp)
+    phi = edgeU.dot(mesh.Se)  # phi = v n A  gdzie An tu rowne jest dl_krawedzi obruconej o 90 stopni
+
+    Mpd, Fpd = laplace(p, fvMatrix)
+
+    Mpd.mulRowWise(1./A)
+    Fpd = Fpd/A + edgeDiv(phi)/mesh.cell_area
+
+    pres = bicgstab(A=Mpd.sparse, b=Fpd, x0=p.data)[0]
+    p.data = p.data * 0.7 + 0.3 * pres
+
+    gradP = grad(p)
+    Ux.data = Ux.data - gradP[:,0]/A
+    Uy.data = Uy.data - gradP[:,1]/A
+
+
 
 # Results = list()
 # Tn = T.data.reshape((n, n))
@@ -100,6 +126,12 @@ Uy.data = bicgstab(A=momY_M.sparse, b=momY_F, x0=Uy.data)[0]
 #
 #
 
+animate_contour_plot([Ux.data.reshape((n,n))])
+plt.show()
+animate_contour_plot([p.data.reshape((n,n))])
+plt.show()
+# animate_contour_plot([Uy.data.reshape((n,n))], dataRange=[0,1])
+# plt.show()
 #
 #
 # for iter in range(int(nt)):

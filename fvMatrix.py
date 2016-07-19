@@ -83,6 +83,11 @@ class fvMatrix:             # do sparse co na przek, jakie wartosci (data) w jak
 
         return F
 
+    def relax(self, coeff=0.5):
+        for i in range(self.shape[0]):
+            self.data[i] = [ d*coeff for d in self.data[i] ]
+        self.reset_cache()
+
 
     @property
     def shape(self):
@@ -140,6 +145,15 @@ class fvMatrix:             # do sparse co na przek, jakie wartosci (data) w jak
             self.data[i] = [coeff * t for t in self.data[i]]
 
         self.reset_cache()
+
+
+    def mulRowWise(self, rowCoeffs):
+        for i, coeff in enumerate(rowCoeffs):
+            self.diag[i] *= coeff
+            self.data[i] = [coeff * t for t in self.data[i]]
+
+        self.reset_cache()
+
 
     def addEntry(self, row, col, value):
 

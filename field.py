@@ -252,7 +252,7 @@ class symmetry(Neuman):                                                         
 class SurfField:                                     # to jest po prostu field z wartosciami rozwiazania dziedziczy po np.array
     def __init__(self, mesh):                        # pobiera mesh a z nim jego rozmiar i boundaries czyli WB
         #self.data = np.array([0.]*mesh.n)           # [0.]*mesh.n lista zer o rozmiarze mesh.n
-        self.data = np.zeros((mesh.n, 1))            # zamien lem
+        self.data = np.zeros(mesh.n)            # zamien lem
         self.boundaries = [BoundaryField(mesh, i) for i, _ in enumerate(mesh.boundaries)]          # (***) lista z pustymi warunkami brzegowymi dodatkowa do przechowania _ zmienna ktorej nikt nie uzyje interesuje nas tylko ilosc nie wartosc
         self.mesh = mesh
     # @property
@@ -308,13 +308,13 @@ class EdgeField:
         self.mesh = mesh
 
     @staticmethod
-    def interp(surfField):                                      #  def interp(self, surfField):   nie statyczna musi byc z self
+    def interp(surfField):                                              # def interp(self, surfField):   nie statyczna musi byc z self
 
         mesh = surfField.mesh
         efield = EdgeField(mesh)
 
-        for i, kraw in enumerate(mesh.list_kr):
-            if kraw[3] > 0:                                      # jesli ma sasiada
+        for i, kraw in enumerate(mesh.list_kr):                         # interoplacja ze srodkow na krawedz
+            if kraw[3] > 0:                                             # jesli ma sasiada
                 # przypadek szczegolny odl do srodkow krawedzi nie przeciec wektorow
                 # zczytuje z listy_kr wlasciciela i sasiada i pobieram predkosci w ich srodkach komorek jako wektor [x, y]
                 vwl = surfField[kraw[2]]
@@ -322,7 +322,7 @@ class EdgeField:
 
                 # wsp sr kom wl: mesh.cell_centers[kraw[2]]
                 dl = mesh.wsp_wekt_z_wsp(mesh.cell_centers[kraw[3]], mesh.cell_centers[kraw[2]])
-                dl = mesh.dl_wekt(dl[0], dl[1])                           # dlugosc miedzy sr komorek
+                dl = mesh.dl_wekt(dl[0], dl[1])                              # dlugosc miedzy sr komorek
 
                 dlc = mesh.wsp_wekt_z_wsp(mesh.cell_centers[kraw[2]], (mesh.xy[kraw[0]] + mesh.xy[kraw[1]]) / 2)
                 dlc = mesh.dl_wekt(dlc[0], dlc[1])
@@ -330,9 +330,9 @@ class EdgeField:
                 dlf = mesh.wsp_wekt_z_wsp(mesh.cell_centers[kraw[3]], (mesh.xy[kraw[0]] + mesh.xy[kraw[1]]) / 2)
                 dlf = mesh.dl_wekt(dlf[0], dlf[1])
 
-                v = vwl * (dlf / dl) + vsas * (dlc / dl)                  # przypadek szczegolny
+                v = vwl * (dlf / dl) + vsas * (dlc / dl)                    # przypadek szczegolny
                 efield.data[i] = v
-            else:  # gdy krawedz brzegowa
+            else:                                                           # gdy krawedz brzegowa
                 for bId, bEdges in enumerate(mesh.boundaries):
                     for eLocalId, e in enumerate(bEdges):
                         if e == i:
@@ -349,10 +349,13 @@ class EdgeField:
 
     def dot(self, other):                                # iloczyn skalarny self.data z podanym wektorem (lista)
         ret = EdgeField(self.mesh)
+
         if isinstance(other, EdgeField):                # jesli numpy ?
-            ret.data = self.data.dot(other.data)
+            data = other.data
         else:
-            ret.data = self.data.dot(other)
+            data = other
+
+        ret.data = np.sum(self.data[:]*data[:], axis=1, dtype=float)
         return ret
 
 
@@ -432,7 +435,7 @@ def generate_phi_r_2(mesh):
     return vals_return
 
 
-def grad(surfField):
+def grad(surfField):                     # Green - Gauss
 
     import numpy as np
 
@@ -448,13 +451,30 @@ def grad(surfField):
         dP = P2 - P1
         cellGrad[defE[2], :] += [-valE * dP[1], valE * dP[0]]
 
-        if defE[3] > 0:
+        if defE[3] >= 0:
             cellGrad[defE[3], :] += [valE * dP[1], -valE * dP[0]]
 
     cellGrad[:, 0] = cellGrad[:, 0] / mesh.cell_area
     cellGrad[:, 1] = cellGrad[:, 1] / mesh.cell_area
 
     return cellGrad
+
+
+def edgeDiv(edgeField):
+    mesh = edgeField.mesh
+    ret = np.zeros(len(mesh.cells), dtype=float)
+
+    for e, eDef in enumerate(mesh.list_kr):
+        ev = mesh.Se[e]
+        dS = np.sqrt(ev.dot(ev))
+        val = edgeField.data[e]
+
+        ret[eDef[2]] += val*dS
+
+        if eDef[3] >= 0:
+            ret[eDef[3]] -= val*dS
+
+    return ret
 
 #
 #
