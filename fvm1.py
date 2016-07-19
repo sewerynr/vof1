@@ -195,7 +195,7 @@ def div(phi, field, matrixProvider = lambda mesh: np.array([[0.] * mesh.n] * mes
         w, s = k[2:]                                    # zczytuje wlascicel, sasiad danej krawedzi i
         edgeLen = np.array(mesh.edge_vector(i))         # liczy wektor krawedziowy i
         edgeLen = np.sqrt(edgeLen.dot(edgeLen))         # liczy dlugosc krawedzi dla konkretnego wektora krawedziowego( v*n*T*dl = phi*T*A)
-        phiEdge = phi[i]                                # pobiera wartosci predkosci z macierzy phi[dla elementu i]
+        phiEdge = phi.data[i]                                # pobiera wartosci predkosci z macierzy phi[dla elementu i]
         #print phiEdge
         #print "edg length", edgeLen
 
@@ -427,8 +427,6 @@ def animate_contour_plot(framesDatas, sizeX=(0, 1), sizeY=(0, 1), dataRange=None
             return cs
 
         anim = animation.FuncAnimation(fig, animate, frames=len(framesDatas) / skip, interval=interval, repeat=repeat)
-
-    plt.show()
 
 # for id, cell in enumerate(k_ids):
 #     print id, cell

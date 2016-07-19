@@ -28,7 +28,7 @@ class Mesh:
 
         self.boundaries_points = boundaries
         self.boundaries = self.__bound_to_edge_bound__(boundaries)
-
+        self.Se = self.__Se__()
         self.cell_centers = self.__cell_center__()
 
         # self.boundaries = boundaries
@@ -40,7 +40,16 @@ class Mesh:
     #         self.__wsp_dl__ = self.__wektor_wsp_idl__()
     #     return self.__wsp_dl__
 
-
+    def __Se__(self):
+        se = np.array([[0.] * 2] * len(self.list_kr))
+        #print len(self.list_kr)
+        for i, edge in enumerate(self.list_kr):
+            p1 = self.xy[edge[0], :]     # edge[0] mowi ktory wiesz czyli ktory pkt. : to wez x, y
+            p2 = self.xy[edge[1], :]
+            x, y = self.wsp_wekt_z_wsp(p1,p2)
+            se[i] = [-y, x]
+        #print se
+        return se
 
 
     def __cell_center__(self):
@@ -127,7 +136,7 @@ class Mesh:
         dlw = (x**2 + y**2)**0.5
         nx = xn / dlw
         ny = yn / dlw
-        return nx, ny
+        return np.array([nx, ny])
 
     def edge_normal(self, i):                            # i indeks krawedzi   liczy normalna do krawedzi zapisanej w liscie pod indeksem i
         def_edge = self.list_kr[i, :2]                   # wyciagam numery (indeksy) punktow z ktorch sklada sie dana krawedz  dwa pierwsze elementy wiersza

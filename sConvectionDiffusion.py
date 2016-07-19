@@ -15,7 +15,7 @@ dy = DlPrzY/n
 
 dt = 0.001                                                 # CFL u*dt/dx <= 1
 tp = 0
-tk = 1
+tk = 0.1
 
 nt = (tk - tp)/dt
 
@@ -107,7 +107,23 @@ for iter in range(int(nt)):
     Results.append(Tn)
 
 # Animate results:
-animate_contour_plot(Results, skip=10, repeat=False, interval=75, dataRange=[0, 10])
+#animate_contour_plot(Results, skip=10, repeat=False, interval=75, dataRange=[0, 10])
+
+gradT = grad(T)
+
+from interpolacja import inter
+from matplotlib.pyplot import quiver
+from matplotlib.pyplot import contourf
+from numpy import meshgrid
+
+
+animate_contour_plot([inter(mesh.xy, mesh.cells, T.data).reshape((n+1,n+1))], skip=10, repeat=False, interval=75, dataRange=[0, 10])
+
+q = quiver(mesh.cell_centers[:,0], mesh.cell_centers[:,1], gradT[:, 0], gradT[:, 1])
+
+plt.show()
+
+
 
 #draw_values_edges(mesh.xy, mesh.cells, mesh.list_kr, T, n, DlPrzX, DlPrzY, Tdir)
 #draw_edges(mesh.xy, mesh.list_kr)

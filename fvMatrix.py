@@ -17,7 +17,7 @@ class fvMatrix:             # do sparse co na przek, jakie wartosci (data) w jak
             self.indices = [list() for i in range(N)]
             self.diag = [0. for i in range(N)]
 
-        # domyslnie nie ma tych wartosci dopuki ich nie utworzy
+        # domyslnie nie ma tych wartosci dopoki ich nie utworzy
         self.__cache__ = None       # nie istnieje obiekt cahe
         self.vectorData = None
         self.vectorIndices = None
