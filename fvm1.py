@@ -74,109 +74,44 @@ def siatka_regularna_prost(n, dx, dy, x0, y0):
     # Definicja 1 komorki: [ nr wz1, nr wz2, nr wz3, nr wz4 ]
 
 
-from fvMatrix import fvMatrix
-def sLaplace(field):
-    n, lista_kra = field.mesh.n, field.mesh.list_kr
-
-    mat = fvMatrix(field.mesh)
-
-    # przelec po wszystkich komorkach w kazdej obl wartosci wspolczynnikow po czym dla kazdej utworz wiersz w macierzy sztywnosci
-    #def wspolczynnik_d(f, c, k1 ,k2)
-
-    for kraw in lista_kra:
-        if kraw[3] > -1:                                                                         # jesli nie scianka brzegowa to wieksze niz -1
-            k1, k2, c1, c2 = kraw                                                                # przypisz k1 k2 c1 c2 co stoi w wierszu macierzy lista_kr znanej jako kraw
-            cc1 = sum(field.mesh.xy[field.mesh.cells[c1], :]) / len(field.mesh.cells[c1])        # srodki komomurek pobiera numery wezlow z cells i wczytuje wsp z wsp_wezl
-            cc2 = sum(field.mesh.xy[field.mesh.cells[c2], :]) / len(field.mesh.cells[c2])        # pod cc1 i cc2 zapisuje wsp srodkow jako wektor [x,y]
-            a = wspolczynnik_d(cc2, cc1, field.mesh.xy[k1, :], field.mesh.xy[k2, :])             # licze wsp dla konkretnej scianki (jeden krok petli odpowiada jednej krawedzi )
-            f1 = c2                               # sasiad
-            c = c1                                # wlasciciel
-
-            a = a / field.mesh.cell_area[c]
-
-            mat[c, c] += - a
-            mat[c, f1] += a
-
-            # mat.addEntry(c, c, - a/field.mesh.cell_area[c])
-            # mat.addEntry(c, f1,   a/field.mesh.cell_area[c])
-
-            # kazda krawedz tylko raz ale ma sasiada odwracamy i wpisujemy dla sasaiada
-            f1 = c1
-            c = c2
-
-            mat[c, c] += - a
-            mat[c, f1] += a
-
-
-    rhs = np.zeros((n, 1))
-
-    field.sApply_bc_diffusiveFlux(mat.data, mat.indices, rhs)
-
-
-    #  To bylo dodawnie 1 z I do diagonali:
-
-    # for c, (dRow, iRow) in enumerate(zip(data, indices)):
-    #     dRow.append(1.)
-    #     iRow.append(c)
-
-    return mat, rhs
-
-# to do zmiennej w czasie
-def steady_laplace(field):
-    n, lista_kra = field.mesh.n, field.mesh.list_kr
-    macierz_K_e = np.array([[0.]*n]*n)
-
-    # przelec po wszystkich komorkach w kazdej obl wartosci wspolczynnikow po czym dla kazdej utworz wiersz w macierzy sztywnosci
-    #def wspolczynnik_d(f, c, k1 ,k2)
-
-    for kraw in lista_kra:
-        if kraw[3] > -1:                                                                         # jesli nie scianka brzegowa to wieksze niz -1
-            k1, k2, c1, c2 = kraw                                                                # przypisz k1 k2 c1 c2 co stoi w wierszu macierzy lista_kr znanej jako kraw
-            cc1 = sum(field.mesh.xy[field.mesh.cells[c1], :]) / len(field.mesh.cells[c1])        # srodki komomurek pobiera numery wezlow z cells i wczytuje wsp z wsp_wezl
-            cc2 = sum(field.mesh.xy[field.mesh.cells[c2], :]) / len(field.mesh.cells[c2])        # pod cc1 i cc2 zapisuje wsp srodkow jako wektor [x,y]
-            a = wspolczynnik_d(cc2, cc1, field.mesh.xy[k1, :], field.mesh.xy[k2, :])             # licze wsp dla konkretnej scianki (jeden krok petli odpowiada jednej krawedzi )
-            f1 = c2                               # sasiad
-            c = c1                                # wlasciciel
-            macierz_K_e[c, c] += - a            # to co odp wlascicielowi
-            macierz_K_e[c, f1] += a              # to co odp sasiadowi z przeciwnym znakiem
-            # kazda krawedz tylko raz ale ma sasiada odwracamy i wpisujemy dla sasaiada
-            f1 = c1
-            c = c2
-            macierz_K_e[c, c] += - a              # macierz_K_e[c2,c2]
-            macierz_K_e[c, f1] += a               # macierz_K_e[c2,c1]
-
-    rhs = np.zeros((n, 1))
-
-    field.steady_apply_bc_diffusiveFlux(macierz_K_e, rhs)
-
-    return macierz_K_e, rhs
 
 # ta do ustalonej w czasie
-def laplace(field, matrixProvider = lambda mesh: np.array([[0.] * mesh.n] * mesh.n) ):
+def laplace(coeff, field, matrixProvider = lambda mesh: np.array([[0.] * mesh.n] * mesh.n) ):
     n, lista_kra = field.mesh.n, field.mesh.list_kr
     macierz_K_e = matrixProvider(field.mesh)
+    mesh = field.mesh
+
+    from field import EdgeField, SurfField, Neuman
+    coeffField = SurfField(mesh)
+
+
+    if not hasattr(coeff, "__iter__"):
+        coeffField.data = np.array( [coeff]*len(mesh.list_kr) )
+    else:
+        coeffField.data = np.array(coeff)
+
+    edgeCoeff = EdgeField.interp(coeffField).data
+
 
     # przelec po wszystkich komorkach w kazdej obl wartosci wspolczynnikow po czym dla kazdej utworz wiersz w macierzy sztywnosci
     # def wspolczynnik_d(f, c, k1 ,k2)
 
-    for kraw in lista_kra:
+    for i, kraw in enumerate(lista_kra):
         if kraw[3] > -1:  # jesli nie scianka brzegowa to wieksze niz -1
             k1, k2, c1, c2 = kraw  # przypisz k1 k2 c1 c2 co stoi w wierszu macierzy lista_kr znanej jako kraw
-            cc1 = sum(field.mesh.xy[field.mesh.cells[c1], :]) / len(
-                field.mesh.cells[c1])  # srodki komomurek pobiera numery wezlow z cells i wczytuje wsp z wsp_wezl
-            cc2 = sum(field.mesh.xy[field.mesh.cells[c2], :]) / len(
-                field.mesh.cells[c2])  # pod cc1 i cc2 zapisuje wsp srodkow jako wektor [x,y]
-            a = wspolczynnik_d(cc2, cc1, field.mesh.xy[k1, :], field.mesh.xy[k2,
-                                                               :])  # licze wsp dla konkretnej scianki (jeden krok petli odpowiada jednej krawedzi )
+            cc1 = sum(field.mesh.xy[field.mesh.cells[c1], :]) / len( field.mesh.cells[c1])  # srodki komomurek pobiera numery wezlow z cells i wczytuje wsp z wsp_wezl
+            cc2 = sum(field.mesh.xy[field.mesh.cells[c2], :]) / len( field.mesh.cells[c2])  # pod cc1 i cc2 zapisuje wsp srodkow jako wektor [x,y]
+            a = wspolczynnik_d(cc2, cc1, field.mesh.xy[k1, :], field.mesh.xy[k2, :])  # licze wsp dla konkretnej scianki (jeden krok petli odpowiada jednej krawedzi )
+            a *= edgeCoeff[i]
             f1 = c2  # sasiad
             c = c1  # wlasciciel
-            macierz_K_e[c, c] += - a / field.mesh.cell_area[c]  # to co odp wlascicielowi
-            macierz_K_e[c, f1] += a / field.mesh.cell_area[c]  # to co odp sasiadowi z przeciwnym znakiem
+            macierz_K_e[c, c] += - a   # to co odp wlascicielowi
+            macierz_K_e[c, f1] += a   # to co odp sasiadowi z przeciwnym znakiem
             # kazda krawedz tylko raz ale ma sasiada odwracamy i wpisujemy dla sasaiada
             f1 = c1
             c = c2
-            macierz_K_e[c, c] += - a / field.mesh.cell_area[c]  # macierz_K_e[c2,c2]
-            macierz_K_e[c, f1] += a / field.mesh.cell_area[c]  # macierz_K_e[c2,c1]
+            macierz_K_e[c, c] += - a   # macierz_K_e[c2,c2]
+            macierz_K_e[c, f1] += a   # macierz_K_e[c2,c1]
 
     rhs = np.zeros(n)
 
@@ -184,7 +119,7 @@ def laplace(field, matrixProvider = lambda mesh: np.array([[0.] * mesh.n] * mesh
 
     return macierz_K_e, rhs
 
-    #   div to adwekcja ta do zmiennej w czasie
+    #   div to dywergencja, czlon zachowawczy adwekcji
 def div(phi, field, matrixProvider = lambda mesh: np.array([[0.] * mesh.n] * mesh.n)):                                    # phi to pole predkosci na scianach skalarne bo przemnozone skalarnie razy wektor normalny (ro * wektor predkosci * wekt normalny) = phi
     n, lista_kra = field.mesh.n, field.mesh.list_kr     # lista kr: [ 1 0 0 1]  = [pkt1 pkt2 wl sasiad]
     D = matrixProvider(field.mesh)                        # tablica 2D nxn
@@ -201,16 +136,14 @@ def div(phi, field, matrixProvider = lambda mesh: np.array([[0.] * mesh.n] * mes
 
         #!!!!!!!!!!!!!!!!!!!!!!!!!!!! Wiersz mowi ktora komorka kolumna co i skad wlata wylata  (strumien o jakiejs temp)   !!!!!!!!!!!!!!!!!!!!!!!!!!
 
-        # Upind
+        # Upiwnd
         if k[3] > -1:
             if phiEdge > 0:  # od wlasiciela do sasiada
-                D[w, w] -= phiEdge * edgeLen / field.mesh.cell_area[w]         # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
-                D[s, w] += phiEdge * edgeLen / field.mesh.cell_area[s]         # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
-            elif phiEdge == 0:
-                pass
+                D[w, w] += phiEdge * edgeLen         # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
+                D[s, w] -= phiEdge * edgeLen         # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
             else:   # phiedge < 0 mniejsze od sasiada do wlasciciela
-                D[s, s] += phiEdge * edgeLen / field.mesh.cell_area[s]          # [ skad wylata/dokad , z jaka temp ] => [od sasiada , z temp sasiada]
-                D[w, s] -= phiEdge * edgeLen / field.mesh.cell_area[w]          # [ skad wylata/dokad , z jaka temp ] => [do wl , temp sasiada]
+                D[s, s] -= phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [od sasiada , z temp sasiada]
+                D[w, s] += phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [do wl , temp sasiada]
 
         #Central
         # if k[3] > -1:
@@ -232,57 +165,6 @@ def div(phi, field, matrixProvider = lambda mesh: np.array([[0.] * mesh.n] * mes
     field.apply_bc_convectiveFlux(D, Rhs, phi.data)
 
     return D, Rhs
-
-
-# ta do ustalonej w czasie
-def steady_div(phi, field):                                    # phi to pole predkosci na scianach skalarne bo przemnozone skalarnie razy wektor normalny (ro * wektor predkosci * wekt normalny) = phi
-    n, lista_kra = field.mesh.n, field.mesh.list_kr     # lista kr: [ 1 0 0 1]  = [pkt1 pkt2 wl sasiad]
-    D = np.array([[0.] * n] * n)                        # tablica 2D nxn
-    Rhs = np.zeros((n,1))                               # wektor prawych stron  zainicjalizowny zerami
-    mesh = field.mesh
-
-    for i, k in enumerate(mesh.list_kr):                # i - numer  k - krawedz   Wszystko powtarzane dla kazdej krawedzi
-        w, s = k[2:]                                    # zczytuje wlascicel, sasiad danej krawedzi i
-        edgeLen = np.array(mesh.edge_vector(i))         # liczy wektor krawedziowy i
-        edgeLen = np.sqrt(edgeLen.dot(edgeLen))         # liczy dlugosc krawedzi dla konkretnego wektora krawedziowego( v*n*T*dl = phi*T*A)
-        phiEdge = phi[i]                                # pobiera wartosci predkosci z macierzy phi[dla elementu i]
-        #print phiEdge
-        #print "edg length", edgeLen
-
-        #!!!!!!!!!!!!!!!!!!!!!!!!!!!! Wiersz mowi ktora komorka kolumna co i skad wlata wylata  (strumien o jakiejs temp)   !!!!!!!!!!!!!!!!!!!!!!!!!!
-
-        # Upind
-        if k[3] > -1:
-            if phiEdge > 0:  # od wlasiciela do sasiada
-                D[w, w] -= phiEdge * edgeLen          # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
-                D[s, w] += phiEdge * edgeLen          # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
-            elif phiEdge == 0:
-                pass
-            else:   # phiedge < 0 mniejsze od sasiada do wlasciciela
-                D[s, s] += phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [od sasiada , z temp sasiada]
-                D[w, s] -= phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [do wl , temp sasiada]
-
-        #Central
-        # if k[3] > -1:
-        #     if phiEdge > 0:  # od wlasiciela do sasiada
-        #         D[w, w] -= phiEdge * edgeLen         # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
-        #         D[w, s] -= phiEdge * edgeLen          # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
-        #
-        #         D[s, s] += phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
-        #         D[s, w] += phiEdge * edgeLen          # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
-        #     elif phiEdge == 0:
-        #         pass
-        #     else:   # phiedge < 0 mniejsze od sasiada do wlasciciela
-        #         D[s, s] += phiEdge * edgeLen          # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
-        #         D[s, w] += phiEdge * edgeLen          # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
-        #
-        #         D[w, w] -= phiEdge * edgeLen          # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
-        #         D[w, s] -= phiEdge * edgeLen          # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
-
-    field.steady_apply_bc_convectiveFlux(D, Rhs, phi)
-
-    return D, Rhs
-
 
 def WB_dir_T1(lista_kr, Td, wsp_wezl, macierz_K_e, rhs):
     # warunki brzegowe 1) jako T w centrum komorki wiec po prostu w macierz K wpisuje w miejsce odp sr. kom 1 a w wektor pr stron = danej temp
