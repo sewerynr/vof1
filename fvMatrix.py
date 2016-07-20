@@ -188,7 +188,7 @@ class fvMatrix:             # do sparse co na przek, jakie wartosci (data) w jak
             self.data[row][colLocalId] = value
 
         else:
-            self.data[row].append(value)            # append - dodaj do data[row] wartosc value
+            self.data[row].append(value)             # append - dodaj do data[row] wartosc value
             self.indices[row].append(col)           # dodaj do indeksow w ktorych stoi wartosc kolumny w ktorej dana wartosc value
 
         self.reset_cache()
@@ -229,7 +229,7 @@ class fvMatrix:             # do sparse co na przek, jakie wartosci (data) w jak
     @staticmethod   # nie trzeba tworzyc obiektu aby urzyc tej metody
     def diagonal(mesh, diagValue=1.):
 
-        if isinstance(mesh, int):
+        if isinstance(mesh, int):           # gdy macierz
             N = mesh
         else:
             N = mesh.n

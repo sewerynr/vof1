@@ -60,7 +60,7 @@ M, F = laplace(T)                                        # ukladanie macierzy i 
 M = M * dt
 F = F * dt
 
-Mc, Fc = div(generate_phi_1(mesh, quadratic_velocity), T)                      # ukladanie macierzy i wektora prawych stron, dostaje D i Rhs z div
+Mc, Fc = div(generate_phi_1(mesh, quadratic_velocity)*mesh.Se, T)                       # ukladanie macierzy i wektora prawych stron, dostaje D i Rhs z div
 
 Mc = Mc * dt
 Fc = Fc * dt

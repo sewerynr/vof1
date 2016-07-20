@@ -73,24 +73,27 @@ def siatka_regularna_prost(n, dx, dy, x0, y0):
     # Utworzenie komorek na podstawie wezlow (zbior nr wezlow budujacych kom.).
     # Definicja 1 komorki: [ nr wz1, nr wz2, nr wz3, nr wz4 ]
 
+def npArrayMatrix(mesh):
+    return np.array([[0.] * mesh.n] * mesh.n)
 
+from fvMatrix import fvMatrix
 
 # ta do ustalonej w czasie
-def laplace(coeff, field, matrixProvider = lambda mesh: np.array([[0.] * mesh.n] * mesh.n) ):
+def laplace(coeff, field, matrixGeneratorFunction = fvMatrix):    # matrixProvider wywoluje konstruktor metody fvMatrix  z polem T lambda funkcja anonimowa
     n, lista_kra = field.mesh.n, field.mesh.list_kr
-    macierz_K_e = matrixProvider(field.mesh)
+    macierz_K_e = matrixGeneratorFunction(field.mesh)
     mesh = field.mesh
 
     from field import EdgeField, SurfField, Neuman
-    coeffField = SurfField(mesh)
+    coeffField = SurfField(mesh, bcGenerator=Neuman)
+
+    if not hasattr(coeff, "__iter__"):                  # czy to liczba czy wektor
+        coeff = np.ones(len(mesh.cells)) * coeff
 
 
-    if not hasattr(coeff, "__iter__"):
-        coeffField.data = np.array( [coeff]*len(mesh.list_kr) )
-    else:
-        coeffField.data = np.array(coeff)
+    coeffField.setValues(np.array(coeff))
 
-    edgeCoeff = EdgeField.interp(coeffField).data
+    edgeCoeff = EdgeField.interp(coeffField)
 
 
     # przelec po wszystkich komorkach w kazdej obl wartosci wspolczynnikow po czym dla kazdej utworz wiersz w macierzy sztywnosci
@@ -102,7 +105,7 @@ def laplace(coeff, field, matrixProvider = lambda mesh: np.array([[0.] * mesh.n]
             cc1 = sum(field.mesh.xy[field.mesh.cells[c1], :]) / len( field.mesh.cells[c1])  # srodki komomurek pobiera numery wezlow z cells i wczytuje wsp z wsp_wezl
             cc2 = sum(field.mesh.xy[field.mesh.cells[c2], :]) / len( field.mesh.cells[c2])  # pod cc1 i cc2 zapisuje wsp srodkow jako wektor [x,y]
             a = wspolczynnik_d(cc2, cc1, field.mesh.xy[k1, :], field.mesh.xy[k2, :])  # licze wsp dla konkretnej scianki (jeden krok petli odpowiada jednej krawedzi )
-            a *= edgeCoeff[i]
+            a *= edgeCoeff.data[i]
             f1 = c2  # sasiad
             c = c1  # wlasciciel
             macierz_K_e[c, c] += - a   # to co odp wlascicielowi
@@ -115,14 +118,17 @@ def laplace(coeff, field, matrixProvider = lambda mesh: np.array([[0.] * mesh.n]
 
     rhs = np.zeros(n)
 
-    field.apply_bc_diffusiveFlux(macierz_K_e, rhs)
+    field.apply_bc_diffusiveFlux(edgeCoeff, macierz_K_e, rhs)
 
     return macierz_K_e, rhs
 
+
+
     #   div to dywergencja, czlon zachowawczy adwekcji
-def div(phi, field, matrixProvider = lambda mesh: np.array([[0.] * mesh.n] * mesh.n)):                                    # phi to pole predkosci na scianach skalarne bo przemnozone skalarnie razy wektor normalny (ro * wektor predkosci * wekt normalny) = phi
+def div(phi, field, matrixGeneratorFunction = fvMatrix):                                    # phi to pole predkosci na scianach skalarne bo przemnozone skalarnie razy wektor normalny (ro * wektor predkosci * wekt normalny) = phi
     n, lista_kra = field.mesh.n, field.mesh.list_kr     # lista kr: [ 1 0 0 1]  = [pkt1 pkt2 wl sasiad]
-    D = matrixProvider(field.mesh)                        # tablica 2D nxn
+    D = matrixGeneratorFunction(field.mesh)                        # tablica 2D nxn
+
     Rhs = np.zeros(n)                               # wektor prawych stron  zainicjalizowny zerami
     mesh = field.mesh
 
@@ -139,11 +145,11 @@ def div(phi, field, matrixProvider = lambda mesh: np.array([[0.] * mesh.n] * mes
         # Upiwnd
         if k[3] > -1:
             if phiEdge > 0:  # od wlasiciela do sasiada
-                D[w, w] += phiEdge * edgeLen         # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
-                D[s, w] -= phiEdge * edgeLen         # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
+                D[w, w] += phiEdge #* edgeLen         # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
+                D[s, w] -= phiEdge #* edgeLen         # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
             else:   # phiedge < 0 mniejsze od sasiada do wlasciciela
-                D[s, s] -= phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [od sasiada , z temp sasiada]
-                D[w, s] += phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [do wl , temp sasiada]
+                D[s, s] -= phiEdge #* edgeLen           # [ skad wylata/dokad , z jaka temp ] => [od sasiada , z temp sasiada]
+                D[w, s] += phiEdge #* edgeLen           # [ skad wylata/dokad , z jaka temp ] => [do wl , temp sasiada]
 
         #Central
         # if k[3] > -1:
@@ -152,7 +158,7 @@ def div(phi, field, matrixProvider = lambda mesh: np.array([[0.] * mesh.n] * mes
         #         D[w, s] -= phiEdge * edgeLen / (2 * field.mesh.cell_area[w])         # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
         #
         #         D[s, s] += phiEdge * edgeLen / (2 * field.mesh.cell_area[s])          # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
-        #         D[s, w] += phiEdge * edgeLen / (2 * field.mesh.cell_area[s])         # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
+         #         D[s, w] += phiEdge * edgeLen / (2 * field.mesh.cell_area[s])         # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
         #     elif phiEdge == 0:
         #         pass
         #     else:   # phiedge < 0 mniejsze od sasiada do wlasciciela
