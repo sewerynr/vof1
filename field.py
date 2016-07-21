@@ -90,45 +90,14 @@ class Dirichlet(BoundaryField):                                         # clasa 
             id_edge = self.mesh.boundaries[self.id, i]    # indeks krawedzi w WB
             #field = self.field
             c = self.mesh.list_kr[id_edge, 2]             # pobierz wlascicela tej krawedzi
-            edgeLen = np.array(self.mesh.edge_vector(i))
-            edgeLen = np.sqrt(edgeLen.dot(edgeLen))
-
+            edgeLen = self.mesh.eLengths[id_edge]
             phiEdge = phi[id_edge]
             if phiEdge > 0:                               # gdy wylatuje
-                EqMat[c, c] -= phiEdge #* edgeLen
+                EqMat[c, c] -= phiEdge * edgeLen
             else:                                         # gdy wlatuje
                 Tbrzeg = self.data[i]
-                Rhs[c] += Tbrzeg * phiEdge #* edgeLen
-
-    def steady_insertDiffusiveFlux(self, EqMat, Rhs):  # dopisuje do macierzy_K WB
-        for i, _ in enumerate(self.mesh.boundaries[self.id]):
-            id_edge = self.mesh.boundaries[self.id, i]  # indeks krawedzi w WB
-            field = self.field
-            c = self.mesh.list_kr[id_edge, 2]  # pobierz wlascicela tej krawedzi
-            cc1 = sum(field.mesh.xy[field.mesh.cells[c], :]) / len(field.mesh.cells[c])  # srodek komorki
-            nr_kr_1, nr_kr_2 = field.mesh.list_kr[id_edge, 0], field.mesh.list_kr[id_edge, 1]
-            ck3 = (field.mesh.xy[nr_kr_1, :] + field.mesh.xy[nr_kr_2,
-                                               :]) / 2  # srodek scianki to samo co ck1 i ck2 ale od razu dla 2 wsp srodka sciany [x,y]
-            ad = wspolczynnik_d(ck3, cc1, field.mesh.xy[nr_kr_1, :],
-                                field.mesh.xy[nr_kr_2, :])  # pobiera wsp punkt z ktorych sklada sie krawedz
-            EqMat[c, c] -= ad / self.field.mesh.cell_area[c]  # do kom wlasciciela przypisuje wsp
-            Rhs[c] += -self.data[i] * ad   # data odp komorce
-
-
-    def steady_insertConvectiveFlux(self, EqMat, Rhs, phi):
-        for i, _ in enumerate(self.mesh.boundaries[self.id]):
-            id_edge = self.mesh.boundaries[self.id, i]  # indeks krawedzi w WB
-            # field = self.field
-            c = self.mesh.list_kr[id_edge, 2]  # pobierz wlascicela tej krawedzi
-            edgeLen = np.array(self.mesh.edge_vector(i))
-            edgeLen = np.sqrt(edgeLen.dot(edgeLen))
-
-            phiEdge = phi[id_edge]
-            if phiEdge > 0:  # gdy wylatuje
-                EqMat[c, c] -= phiEdge * edgeLen
-            else:  # gdy wlatuje
-                Tbrzeg = self.data[i]
                 Rhs[c] += Tbrzeg * phiEdge * edgeLen
+
 
 class Neuman(BoundaryField):                                        # klasa dla kazdej krawedzi o warunku neuman
     def __init__(self, mesh, bId, derivativeValue = 0 ):            # derivativeValue po prostu zadana wart poch na krawedzi WB
@@ -184,44 +153,19 @@ class Neuman(BoundaryField):                                        # klasa dla 
             id_edge = self.mesh.boundaries[self.id, i]                          # indeks krawedzi w WB
             field = self.field
             c = self.mesh.list_kr[id_edge, 2]                                   # pobierz wlascicela tej krawedzi
-            edgeLen = np.array(self.mesh.edge_vector(i))
-            edgeLen = np.sqrt(edgeLen.dot(edgeLen))
+            edgeLen = self.mesh.eLengths[id_edge]
 
             phiEdge = phi[id_edge]
+
             if phiEdge > 0:                                                     # wylatuje
-                EqMat[c, c] -= phiEdge#*edgeLen
+                EqMat[c, c] -= phiEdge * edgeLen
             else:                                                               # gdy wlatuje
                 Tbrzeg = self.data[i]                                           # powinno byc z zewnetrznej krawedzi nie istniejacej bo wlatuje z zewnatrz
-
-                Rhs[c] -= Tbrzeg * phiEdge# * edgeLen
-
-
-    def steady_insertDiffusiveFlux(self, EqMat, Rhs):  # pobiera macierz K i wektor pr stron
-        # print len(self.mesh.boundaries[self.id])
-        for i in range(len(self.mesh.boundaries[self.id])):
-            id_edge = self.mesh.boundaries[self.id, i]  # indeks krawedzi w WB
-            c = self.field.mesh.list_kr[id_edge, 2]  # indeks wlasciciela do niego dopicac w rhs
-            nr_kr_1, nr_kr_2 = self.field.mesh.list_kr[id_edge, 0], self.field.mesh.list_kr[id_edge, 1]
-            wekt_ws = self.field.mesh.wsp_wekt_z_wsp(self.field.mesh.xy[nr_kr_1, :], self.field.mesh.xy[nr_kr_2, :])
-
-            Rhs[c] += self.deriv * self.field.mesh.dl_wekt(wekt_ws[0], wekt_ws[1])
-
-
-    def steady_insertConvectiveFlux(self, EqMat, Rhs, phi):
-        for i, _ in enumerate(self.mesh.boundaries[self.id]):
-            id_edge = self.mesh.boundaries[self.id, i]  # indeks krawedzi w WB
-            field = self.field
-            c = self.mesh.list_kr[id_edge, 2]  # pobierz wlascicela tej krawedzi
-            edgeLen = np.array(self.mesh.edge_vector(i))
-            edgeLen = np.sqrt(edgeLen.dot(edgeLen))
-
-            phiEdge = phi[id_edge]
-            if phiEdge > 0:  # wylatuje
-                EqMat[c, c] -= phiEdge * edgeLen
-            else:  # gdy wlatuje
-                Tbrzeg = self.data[i]  # powinno byc z zewnetrznej krawedzi nie istniejacej bo wlatuje z zewnatrz
-
                 Rhs[c] -= Tbrzeg * phiEdge * edgeLen
+                # nalezy poprawic to powyzej, tak aby z pochodnej i wartosc w srodku sasiedniej
+                # komorki pisac rownanie na wartosc wielkosci wlatujacej do srodka
+                # to powinno doprowadzic do wstawienia czegos do macierzy i czegos do wekt. pr. stron
+
 
 
 
@@ -268,22 +212,15 @@ class SurfField:                                     # to jest po prostu field z
         self.data = lista_wart                 # rozwiazanie tu tablica "A"
         self.updateBoundaryValues()
 
-    def apply_bc_diffusiveFlux(self, edgeFieldCoeff, EqMat, Rhs):        # ma wrzucic ten warunek na macierz M i rhs
-        for b in self.boundaries:                        # petla po 4 war brzeg (te brzegi juz zapisalem uzywajac setBoundaryCondition
-            b.insertDiffusiveFlux(edgeFieldCoeff, EqMat, Rhs)            # jesli neuman to wywola z klasy neuman jesil dirichlet to z dirichlet zalezy czym jest b
-
-    def steady_apply_bc_diffusiveFlux(self, EqMat, Rhs):
+    def apply_bc_diffusiveFlux(self, edgeFieldCoeff, EqMat, Rhs):
         for b in self.boundaries:
-            b.steady_insertDiffusiveFlux(EqMat, Rhs)
+            b.insertDiffusiveFlux(edgeFieldCoeff, EqMat, Rhs)
+
 
     def apply_bc_convectiveFlux(self, EqMat, Rhs, phi):          # ma wrzucic ten warunek na macierz M i rhs
         for b in self.boundaries:                                # petla po 4 war brzeg (te brzegi juz zapisalem uzywajac setBoundaryCondition
             b.insertConvectiveFlux(EqMat, Rhs, phi)              # jesli neuman to wywola z klasy neuman jesil dirichlet to z dirichlet zalezy czym jest b
 
-
-    def steady_apply_bc_convectiveFlux(self, EqMat, Rhs, phi):       # ma wrzucic ten warunek na macierz M i rhs
-        for b in self.boundaries:                                    # petla po 4 war brzeg (te brzegi juz zapisalem uzywajac setBoundaryCondition
-            b.steady_insertConvectiveFlux(EqMat, Rhs, phi)
 
 
 class EdgeField:
@@ -302,10 +239,9 @@ class EdgeField:
         mesh = surfField.mesh
         efield = EdgeField(mesh)
 
-        for i, kraw in enumerate(mesh.list_kr):                         # interoplacja ze srodkow na krawedz
-            if kraw[3] > 0:                                             # jesli ma sasiada
+        for i, kraw in enumerate(mesh.list_kr):                          # interoplacja ze srodkow na krawedz
+            if kraw[3] > -1:                                             # jesli ma sasiada
                 # przypadek szczegolny odl do srodkow krawedzi nie przeciec wektorow
-                # zczytuje z listy_kr wlasciciela i sasiada i pobieram predkosci w ich srodkach komorek jako wektor [x, y]
                 vwl = surfField[kraw[2]]
                 vsas = surfField[kraw[3]]
 
@@ -324,8 +260,8 @@ class EdgeField:
             else:                                                           # gdy krawedz brzegowa
                 for bId, bEdges in enumerate(mesh.boundaries):
                     for eLocalId, e in enumerate(bEdges):
-                        if e == i:
-                            efield.data[i] = surfField.boundaries[bId][eLocalId]
+                        if e == i:                                                        # jesli krawedz z kraw jest w danym WB to:
+                            efield.data[i] = surfField.boundaries[bId][eLocalId]          # przyjmij to co na WB [bId] i krawedzi [eLocalId]
 
         return efield
 
@@ -336,7 +272,7 @@ class EdgeField:
         efield.data[:, 1] = scalarY.data
         return efield
 
-    def dot(self, other):                                # iloczyn skalarny self.data z podanym wektorem (lista)
+    def dot(self, other):                                # iloczyn skalarny self.data(to co wywolujw) z podanym wektorem (lista)
         ret = EdgeField(self.mesh)
 
         if isinstance(other, EdgeField):                # jesli numpy ?
@@ -350,35 +286,53 @@ class EdgeField:
 
 def quadratic_velocity(pc, tanPc, r):
     U = 10.
-    if r <= 1:
-        return tanPc*U*(-(r-0.5)**2+1)
+    if r <= 0.5:
+        return tanPc*U*(-(4*r-1.)**2+1.)
     else:
         return np.array([0., 0.])
 
 #  odrazu daje normalne skl pr na sciankach
 def generate_phi_r(mesh, velcity_function):           #po krawedziach
-    vals = EdgeField(mesh)
-    for i,kraw in enumerate(mesh.list_kr):      # dla kazdej krawedzi
-        p1, p2 = mesh.xy[kraw[:2]]              # zczytaj punkty krawedzi  (dwie pierwsze liczby z list_kr) i pobierz ich wsp x , y
-        pc = (p1 + p2)/2. - [0.5, 0.5]          # wektor od srodka obszaru do srodka krawedzi
+    vals = np.zeros(len(mesh.list_kr), dtype=float)
+    for i,kraw in enumerate(mesh.list_kr):
+        p1, p2 = mesh.xy[kraw[:2]]
+        pc = (p1 + p2)/2. - [0.5, 0.5]
         r = np.sqrt(pc.dot(pc))
-        #r = (pc[1]**2 + pc[0]**2)**0.5
         tan = np.array([-pc[1], pc[0]])         # normalna do pc[x, y] = pcn[-y, x]
-        tan = tan / np.sqrt(tan.dot(tan))       # kierunek normalej
-        U = velcity_function(pc, tan, r)        # razy wsp.
-        vals.data[i] = U.dot(mesh.edge_normal(i))    # rzut na normalna do konkretnej krawedzi
+        tan = tan / np.sqrt(tan.dot(tan))
+        U = velcity_function(pc, tan, r)
+        vals[i] = U.dot(mesh.edge_normal(i))
 
     return vals
 
-def generate_phi_1(mesh):                         # po sr. krawedzi w kierunku -x
-    vals = np.zeros(len(mesh.list_kr))          # lista wartosci 0 i dl odpowiadajacej ilosci krawedzi
-    for i,kraw in enumerate(mesh.list_kr):      # dla kazdej krawedzi
+def generate_phi_1(mesh):
+    vals = np.zeros(len(mesh.list_kr))
+    for i, kraw in enumerate(mesh.list_kr):
         p1, p2 = mesh.xy[kraw[:2]]              # zczytaj punkty krawedzi  (dwie pierwsze liczby z list_kr) i pobierz ich wsp x , y
         pc = (p1 + p2)/2.                       # srodek krawedzi
         U = [10, 10]
         U = np.array([U[0], U[1]])
         vals[i] = U.dot(mesh.edge_normal(i))    # rzut na normalna do konkretnej krawedzi - phi
     return vals
+
+
+def generate_u(mesh, velcity_function):
+    Ux = SurfField(mesh, Neuman)
+    Uy = SurfField(mesh, Neuman)
+
+    vals = np.zeros((len(mesh.cell_centers), 2), dtype=float)
+
+    for c, pc in enumerate(mesh.cell_centers):
+        pc = pc - [0.5, 0.5]
+        r = np.sqrt(pc.dot(pc))
+        tan = np.array([-pc[1], pc[0]])                 # normalna do pc[x, y] = pcn[-y, x]
+        tan = tan / np.sqrt(tan.dot(tan))
+        vals[c, :] = velcity_function(pc, tan, r)
+
+    Ux.setValues(vals[:, 0])
+    Uy.setValues(vals[:, 1])
+
+    return Ux, Uy
 
 
 def generate_phi_r_2(mesh):
@@ -443,8 +397,8 @@ def grad(surfField):                     # Green - Gauss
         if defE[3] >= 0:
             cellGrad[defE[3], :] += [valE * dP[1], -valE * dP[0]]
 
-    cellGrad[:, 0] = cellGrad[:, 0] / mesh.cell_area
-    cellGrad[:, 1] = cellGrad[:, 1] / mesh.cell_area
+    cellGrad[:, 0] = cellGrad[:, 0] / mesh.cells_areas
+    cellGrad[:, 1] = cellGrad[:, 1] / mesh.cells_areas
 
     return cellGrad
 

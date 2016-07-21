@@ -1,24 +1,24 @@
 # macierz dla obliczen pedu bedzie sie zmieniala wiec trzeba bedzie ja modyfikowac z kroku na krok.
 
 
-class fvMatrix:             # do sparse co na przek, jakie wartosci (data) w jakim miejscu (indeses - kolumy)
+class fvMatrix:                   # do sparse co na przek, jakie wartosci (data) w jakim miejscu (indeses - kolumy)
     def __init__(self, meshOrMatrix):
                 # kopie list
-        if isinstance(meshOrMatrix, fvMatrix):   # czy to co pierwsze wnawiasie jest tym co po przecinku
+        if isinstance(meshOrMatrix, fvMatrix):           # czy meshOrMatrix jest obiektem fvMatrix
             self.data = list(meshOrMatrix.data)
             self.indices = list(meshOrMatrix.indices)
-            self.diag = list(meshOrMatrix.diag)    # kopia list
+            self.diag = list(meshOrMatrix.diag)          # kopia list
         else:
-            if isinstance(meshOrMatrix, int):  # jezeli ktos poda int jako rozmiar macierzy
+            if isinstance(meshOrMatrix, int):            # jezeli ktos poda int jako rozmiar macierzy
                 N = meshOrMatrix
-            else:
+            else:                                        # jesli argument wejsciowy to mesh
                 N = meshOrMatrix.n
             self.data = [list() for i in range(N)]
             self.indices = [list() for i in range(N)]
             self.diag = [0. for i in range(N)]
 
         # domyslnie nie ma tych wartosci dopoki ich nie utworzy
-        self.__cache__ = None       # nie istnieje obiekt cahe
+        self.__cache__ = None                            # nie istnieje obiekt cache
         self.vectorData = None
         self.vectorIndices = None
         self.rowLengths = None
@@ -31,7 +31,7 @@ class fvMatrix:             # do sparse co na przek, jakie wartosci (data) w jak
         if self.__cache__ is None:          # gdy nie istnieje to:
             self.optimize()                 # (***) wywolaj optimize() ktora wpisuje wartosci do list
             from scipy.sparse import csr_matrix  # zaimportuj macierze rzadkie
-            self.__cache__ = csr_matrix((self.vectorData, self.vectorIndices, self.rowLengths), shape=(len(self.data),len(self.data)), dtype=float)
+            self.__cache__ = csr_matrix((self.vectorData, self.vectorIndices, self.rowLengths), shape=(len(self.data), len(self.data)), dtype=float)
 
         return self.__cache__   # teraz juz utworzona wiec zapisuje ja (zeby nie tworzyc tego kilka razy)
 
@@ -122,7 +122,7 @@ class fvMatrix:             # do sparse co na przek, jakie wartosci (data) w jak
     def add(self, other):
         for row, (ind, da) in enumerate(zip(other.indices, other.data)):
             self.diag[row] += other.diag[row]
-            for col, val in zip(ind, da):     # zip dziala na kilku listach
+            for col, val in zip(ind, da):             # zip dziala na kilku listach
                 self.addEntry(row, col, val)
 
         self.reset_cache()
@@ -157,7 +157,7 @@ class fvMatrix:             # do sparse co na przek, jakie wartosci (data) w jak
 
     def addEntry(self, row, col, value):
 
-        if row == col:              # spr czy na przekatnej jezeli tak to dopisz do diag
+        if row == col:                        # spr czy na przekatnej jezeli tak to dopisz do diag
             self.diag[row] += value
 
         elif col in self.indices[row]:
@@ -172,12 +172,12 @@ class fvMatrix:             # do sparse co na przek, jakie wartosci (data) w jak
             self.data[row].append(value)
             self.indices[row].append(col)
 
-        self.reset_cache()      # cos zmienione w macierzy
+        self.reset_cache()                    # cos zmienione w macierzy
 
 
     def setEntry(self, row, col, value):
 
-        if row == col:                  # spr czy na przekatnej jezeli tak to wpisz do diag
+        if row == col:                        # spr czy na przekatnej jezeli tak to wpisz do diag
             self.diag[row] = value
 
         elif col in self.indices[row]:
@@ -188,7 +188,7 @@ class fvMatrix:             # do sparse co na przek, jakie wartosci (data) w jak
             self.data[row][colLocalId] = value
 
         else:
-            self.data[row].append(value)             # append - dodaj do data[row] wartosc value
+            self.data[row].append(value)            # append - dodaj do data[row] wartosc value
             self.indices[row].append(col)           # dodaj do indeksow w ktorych stoi wartosc kolumny w ktorej dana wartosc value
 
         self.reset_cache()
@@ -226,10 +226,10 @@ class fvMatrix:             # do sparse co na przek, jakie wartosci (data) w jak
             rowLengths.append(sumLen)
         return rowLengths
 
-    @staticmethod   # nie trzeba tworzyc obiektu aby urzyc tej metody
+    @staticmethod                            # nie trzeba tworzyc obiektu aby urzyc tej metody
     def diagonal(mesh, diagValue=1.):
 
-        if isinstance(mesh, int):           # gdy macierz
+        if isinstance(mesh, int):            # gdy macierz
             N = mesh
         else:
             N = mesh.n
@@ -247,7 +247,7 @@ class fvMatrix:             # do sparse co na przek, jakie wartosci (data) w jak
         return mat
 
     # mozna skeszowac i dac wersje bez diagonali ( przeniesc dla szybszego dzialania )
-    def offdiagmul(self, U):      # liczy iloczyn danego wektora U i macierzy "masowej" bez el na diagonali
+    def offdiagmul(self, U):               # liczy iloczyn danego wektora U i macierzy "masowej" bez el na diagonali
         import numpy as np
         H = [0. for i in range(self.shape[0])]
 

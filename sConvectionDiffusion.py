@@ -109,7 +109,7 @@ for iter in range(int(nt)):
 # Animate results:
 #animate_contour_plot(Results, skip=10, repeat=False, interval=75, dataRange=[0, 10])
 
-gradT = grad(T)
+gradT = grad(T)     # liczymy gradienty obliczonych wartosci temp do wizualizacji
 
 from interpolacja import inter
 from matplotlib.pyplot import quiver

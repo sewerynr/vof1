@@ -20,15 +20,18 @@ class Mesh:
         # self.cell_centers = cell_centers
         # self.__wsp_dl__ = None  # tez do (*****)
 
-        self.cell_area = self.__cell_area__()
+        self.cells_areas = self.__cell_area__()
 
         self.list_kr = self.__lista_krawedzi__()
 
         self.list_kr = self.__wlasciciel_sasiad__(self.list_kr)
 
+        self.edgeCenters = self.__edgeCenters__()
+
         self.boundaries_points = boundaries
         self.boundaries = self.__bound_to_edge_bound__(boundaries)
         self.Se = self.__Se__()
+        self.normals, self.eLengths = self.__normals_and_edge_lengths__()
         self.cell_centers = self.__cell_center__()
 
         # self.boundaries = boundaries
@@ -51,6 +54,9 @@ class Mesh:
         #print se
         return se
 
+    def __normals_and_edge_lengths__(self):
+        magSqrt = np.sqrt(np.sum(np.multiply(self.Se, self.Se), axis=1))
+        return np.array([self.Se[:,0] / magSqrt, self.Se[:,1]/ magSqrt]).T, magSqrt
 
     def __cell_center__(self):
 
@@ -94,10 +100,14 @@ class Mesh:
 
         for idBoundry, b in enumerate(boundaries):                      # petla po 4 War Brzeg bo tyle mamy w naszej siatce gdyby wiecej to po wiekszej liczbie elementow
             for idBEdge, edge_nodes in enumerate(b):                    # petla po konkretnym WB
+                en0 = edge_nodes[0]
+                en1 = edge_nodes[1]
                 for idEdge, edge in enumerate(self.list_kr):            # przelec po wszystkich krawedziach (list_kr) i porownaj z tym co w BC
-                    if (edge_nodes[0] == edge[0] and edge_nodes[1] == edge[1]) or (edge_nodes[1] == edge[0] and edge_nodes[0] == edge[1]):
+                    e0 = edge[0]
+                    e1 = edge[1]
+                    if (en0 == e0 and en1 == e1) or (en1 == e0 and en0 == e1):
                         bond_to_edge[idBoundry][idBEdge] = idEdge       # przypisz krawedzi jej numer jesli punky sobie odpowiadaja
-        #print bond_to_edge
+
         return bond_to_edge
 
 
@@ -163,7 +173,17 @@ class Mesh:
 
         return lista_kr                                 # [ 1 0 0 1]  = [pkt1 pkt2 wl sasiad]
 
+    def __edgeCenters__(self):
+        s = len(self.list_kr)
+        edgeCenters = np.array([[0.] * 2] * s)
 
+        for krid, kr in enumerate(self.list_kr):
+            p1, p2 = kr[: 2]
+            x1, y1 = self.xy[p1]
+            x2, y2 = self.xy[p2]
+            edgeCenters[krid] = (x1 + x2) / 2, (y1 + y2) / 2
+
+        return  edgeCenters
 
     def __wlasciciel_sasiad__(self, lista_krawedzi):
         # do k_ids przypisuje dwie kolumny ze wszystkich wierszy czyli numery wezlow tworzacych krawedzie
@@ -175,11 +195,8 @@ class Mesh:
 
         start = time.clock()
 
-        #print k_ids.shape
-
-        ids = np.array(range(k_ids.shape[0]))
-
-        mask = k_ids[:, 0] == k_ids[:, 1]
+#        ids = np.array(range(k_ids.shape[0]))
+#        mask = k_ids[:, 0] == k_ids[:, 1]
 
         for i1, k in enumerate(k_ids.tolist()):
             m1 = k[0] == k_ids[:, 1]
@@ -194,12 +211,12 @@ class Mesh:
             #     if flag:
             #         pairs.append((i1, i2))
 
-        print ">>>>>>>>> ", time.clock() - start
+        print ">>>>>>>>> m ", time.clock() - start
         start = time.clock()
 
 
         do_wyrzucenia = list()
-        count = 0
+#        count = 0
 
         # zapisuje w lista_krawedzi sasiada (biorac wlascicela z powtarzajacej sie jako sasiada we wczesjniejszej) oraz wpisuje powtarzajace sie do_wyrzucenia
         for p in pairs:

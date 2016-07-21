@@ -61,7 +61,7 @@ for i in range(3):
     print "iter", i
 
     edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))  # pole wektorowe predkosci [Ux, Uy] wyinterpolowanych wartosci na krawedzie (ze sr komurek  EdgeField.interp)
-    phi = edgeU.dot(mesh.Se)  # phi = v n A  gdzie An tu rowne jest dl_krawedzi obruconej o 90 stopni
+    phi = edgeU.dot(mesh.normals)  # phi = v n A  gdzie An tu rowne jest dl_krawedzi obruconej o 90 stopni
 
     Mxc, Fxc = div(phi, Ux)  # ukladanie macierzy i wektora prawych stron, dostaje D i Rhs z div
     Myc, Fyc = div(phi, Uy)
@@ -69,8 +69,8 @@ for i in range(3):
     momX_M = Mxc - Mxd * viscosity
     momY_M = Myc - Myd * viscosity
 
-    momX_F = Fxc - Fxd * viscosity - gradP[:, 0]*mesh.cell_area
-    momY_F = Fyc - Fyd * viscosity - gradP[:, 1]*mesh.cell_area
+    momX_F = Fxc - Fxd * viscosity - gradP[:, 0]*mesh.cells_areas
+    momY_F = Fyc - Fyd * viscosity - gradP[:, 1]*mesh.cells_areas
 
     # momX_M.relax(0.3)
     # momY_M.relax(0.3)
@@ -88,7 +88,7 @@ for i in range(3):
     # Uy.data = Hy / A
     #
     # edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))  # pole wektorowe predkosci [Ux, Uy] wyinterpolowanych wartosci na krawedzie (ze sr komurek  EdgeField.interp)
-    # phi = edgeU.dot(mesh.Se)  # phi = v n A  gdzie An tu rowne jest dl_krawedzi obruconej o 90 stopni
+    # phi = edgeU.dot(mesh.normals)  # phi = v n A  gdzie An tu rowne jest dl_krawedzi obruconej o 90 stopni
     #
     # Mpd, Fpd = laplace(1./A, p)
     # Fpd = Fpd + edgeDiv(phi)
