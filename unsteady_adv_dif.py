@@ -2,17 +2,19 @@ from field import *
 from interpolacja import *
 from fvMatrix import fvMatrix
 from fvm1 import *
+einterp = EdgeField.interp
+
 
 DlPrzX = 1.
 DlPrzY = 1.
 
-n = 50
+n = 40
 dx = DlPrzX/n
 dy = DlPrzY/n
 
-dt = 0.001                                                 # CFL u*dt/dx <= 1   => dt = dx/u
+dt = 0.0005                                                      # CFL u*dt/dx <= 1   => dt = dx/u
 tp = 0
-tk = 20
+tk = 80
 
 nt = (tk - tp)/dt
 
@@ -21,17 +23,17 @@ x0, y0, dl = (0, 0, 0)
 
 node_c, cells, bound = siatka_regularna_prost(n, dx, dy, x0, y0)
 
-mesh = Mesh(node_c, cells, bound)                         # 1. tworzy obiekt mesh klasy Mesh, 2. generujemy siatke dla tego obiektu funkcja siatka_reg...
+mesh = Mesh(node_c, cells, bound)                                # 1. tworzy obiekt mesh klasy Mesh, 2. generujemy siatke dla tego obiektu funkcja siatka_reg...
 
-diffusivity = 0.001
+diffusivity = 0.00001
 
 Tdir = 1
 TdirWB = 0
 
-T = SurfField(mesh, Dirichlet)                  # temp w srodkach komorek
+T = SurfField(mesh, Dirichlet)                                    # temp w srodkach komorek
 
 
-#T.setBoundaryCondition(Neuman(mesh, 0, 0))               # zero odpowiada zerowej krawedzi pobiera obiekt klasy Dirichlet (wywoluje go i tworzy)
+#T.setBoundaryCondition(Neuman(mesh, 0, 0))                       # zero odpowiada zerowej krawedzi pobiera obiekt klasy Dirichlet (wywoluje go i tworzy)
 #T.setBoundaryCondition(Dirichlet(mesh, 0, TdirWB))
 
 #T.setBoundaryCondition(Neuman(mesh, 1, 0))
@@ -40,13 +42,14 @@ T = SurfField(mesh, Dirichlet)                  # temp w srodkach komorek
 #T.setBoundaryCondition(Neuman(mesh, 2, 0))
 T.setBoundaryCondition(Dirichlet(mesh, 2, 10))
 
-np.set_printoptions(precision=3)
+np.set_printoptions(precision=6)
 
-einterp = EdgeField.interp
+# Ux, Uy = generate_u(mesh, quadratic_velocity)                   # stworz w srodkach komorek
+# edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))              # przenies za pomoca .interp do krawedzi
+# phi = edgeU.dot(mesh.normals)                                   # oblicz UnaKrawedzi * normalnaDoKrawedzi = (skalar)
 
-Ux, Uy = generate_u(mesh, quadratic_velocity)                   # stworz w srodkach komorek
-edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))              # przenies za pomoca .interp do krawedzi
-phi = edgeU.dot(mesh.normals)                                   # oblicz UnaKrawedzi * normalnaDoKrawedzi = (skalar)
+phi = EdgeField(mesh)
+phi.data = np.multiply(generate_phi_r(mesh, quadratic_velocity), mesh.eLengths)
 
 
 Md, Fd = laplace(diffusivity, T)
@@ -61,8 +64,11 @@ Mc, Fc = div(phi, T)
 
 Mass = fvMatrix.diagonal(mesh, mesh.cells_areas / dt)
 
-M = Mass + Mc - Md
-F = Fc - Fd
+M = Mass + Mc + Md
+F = Fd - Fc
+
+#M = M * 1000
+#F = F * 1000
 
 # wypelnij polowe temperatura
 # for i, point in enumerate(T.data):
@@ -76,18 +82,25 @@ Results.append(Tn)
 from scipy.sparse.linalg.isolve.iterative import bicgstab
 
 licznik = 0
+step = 100
 #zliczacz = 0
 
 for iter in range(int(nt)):
     licznik = licznik + 1
     #print 'time iteration:', iter
     solution = bicgstab(A=M.sparse, b=F + source(mesh, T.data/dt), x0=T.data)[0]
+    # print "M ", M.sparse.data
+    # print "F ", F
+    # print "T ", source(mesh, T.data/dt)
+    # print "T ", T.data
+
     T.setValues(solution)
-    if licznik == 100:
+    if licznik == step:
         Results.append(T.data.reshape((n, n)))
         #zliczacz = zliczacz + 1
         licznik = 0
     print "pozostalo: ", int(nt - iter)
+
 #print zliczacz
 
 # Animate results:

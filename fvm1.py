@@ -3,14 +3,6 @@ import matplotlib.pyplot as plt
 from mesh import *
 #from functions import *
 
-def wspolczynnik_d(f, c, k1, k2):
-    CF = f - c          # wsp wektora CF
-    k21 = k2 - k1
-    k21 = [k21[1], -k21[0]]
-    a = np.dot(CF, k21) / np.dot(CF, CF)
-    return a
-
-
 def siatka_regularna_prost(n, dx, dy, x0, y0):
     node_coordinates = np.array([[0.] * 2] * (n + 1) ** 2)
     for i in range(0, n + 1, 1):
@@ -87,7 +79,7 @@ def laplace(coeff, field, matrixGeneratorFunction = fvMatrix):    # matrixProvid
     from field import EdgeField, SurfField, Neuman
     coeffField = SurfField(mesh, bcGenerator=Neuman)
 
-    if not hasattr(coeff, "__iter__"):                  # czy to liczba czy wektor
+    if not hasattr(coeff, "__iter__"):                  # czy to liczba czy tablica
         coeff = np.ones(len(mesh.cells)) * coeff
 
     coeffField.setValues(np.array(coeff))
@@ -95,25 +87,24 @@ def laplace(coeff, field, matrixGeneratorFunction = fvMatrix):    # matrixProvid
     edgeCoeff = EdgeField.interp(coeffField)
 
 
-    # przelec po wszystkich komorkach w kazdej obl wartosci wspolczynnikow po czym dla kazdej utworz wiersz w macierzy sztywnosci
-    # def wspolczynnik_d(f, c, k1 ,k2)
-
     for i, kraw in enumerate(lista_kra):
         if kraw[3] > -1:
-            k1, k2, c1, c2 = kraw
-            cc1 = sum(field.mesh.xy[field.mesh.cells[c1], :]) / len( field.mesh.cells[c1])  # srodki komomurek pobiera numery wezlow z cells i wczytuje wsp z wsp_wezl
-            cc2 = sum(field.mesh.xy[field.mesh.cells[c2], :]) / len( field.mesh.cells[c2])
-            a = wspolczynnik_d(cc2, cc1, field.mesh.xy[k1, :], field.mesh.xy[k2, :])  # licze wsp dla konkretnej scianki (jeden krok petli odpowiada jednej krawedzi )
-            a *= edgeCoeff.data[i]
-            f1 = c2  # sasiad
-            c = c1  # wlasciciel
-            macierz_K_e[c, c] += - a                         # to co odp wlascicielowi
-            macierz_K_e[c, f1] += a                         # to co odp sasiadowi z przeciwnym znakiem
-            # kazda krawedz tylko raz ale ma sasiada odwracamy i wpisujemy dla sasaiada
-            f1 = c1
-            c = c2
-            macierz_K_e[c, c] += - a
-            macierz_K_e[c, f1] += a
+            k1, k2, c, f = kraw
+            cC = mesh.cell_centers[c]
+            cF = mesh.cell_centers[f]
+
+            CF = cF - cC
+            Snorm = mesh.Se[i]
+            a = edgeCoeff.data[i] * np.dot(CF, Snorm) / np.dot(CF, CF)
+
+            # Wstawiamy wsp. do ukladu rownan
+            macierz_K_e[c, c] += - a                         # to co odp wlascicielowi, diagonalny element
+            macierz_K_e[c, f] += a                           # to co odp sasiadowi z przeciwnym znakiem, poza diagonala
+            # kazda krawedz tylko raz ale strumien na niej jest bilansowany w dwoch sasiadujacych komorkach, dlatego
+            # takie same wsp (nawet znak, bo kierunek normalnej oraz kierunek od srodka do drugiej sie razem obracaja)
+            # wiec dokladnie te same wspol. ida do rownania o indeksie takim jak sasiad
+            macierz_K_e[f, f] += - a # krawedz wplywa na rownanie sasiada, teraz sasiad jest w centrum komorki
+            macierz_K_e[f, c] += a # a poza diagonala jest wlasciciel
 
     rhs = np.zeros(n)
 
@@ -165,7 +156,6 @@ def div(phi, field, matrixGeneratorFunction = fvMatrix):                  # phi 
         #         D[w, s] -= phiEdge * edgeLen / (2 * field.mesh.cell_area[w])
 
     field.apply_bc_convectiveFlux(D, Rhs, phi.data)
-    print D.data
     return D, Rhs
 
 def WB_dir_T1(lista_kr, Td, wsp_wezl, macierz_K_e, rhs):

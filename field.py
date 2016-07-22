@@ -75,14 +75,17 @@ class Dirichlet(BoundaryField):                                         # clasa 
             id_edge = self.mesh.boundaries[self.id, i]              # indeks krawedzi w WB
             field = self.field
             c = self.mesh.list_kr[id_edge, 2]                       # pobierz wlascicela tej krawedzi
-            cc1 = sum(field.mesh.xy[field.mesh.cells[c], :]) / len(field.mesh.cells[c])              # srodek komorki
-            nr_kr_1, nr_kr_2 = field.mesh.list_kr[id_edge, 0], field.mesh.list_kr[id_edge, 1]
-            ck3 = (field.mesh.xy[nr_kr_1, :] + field.mesh.xy[nr_kr_2, :]) / 2                        # srodek scianki to samo co ck1 i ck2 ale od razu dla 2 wsp srodka sciany [x,y]
-            ad = wspolczynnik_d(ck3, cc1, field.mesh.xy[nr_kr_1, :], field.mesh.xy[nr_kr_2, :])      # pobiera wsp punkt z ktorych sklada sie krawedz
-            ad *= edgeFieldCoeff.data[id_edge]
 
-            EqMat[c, c] -= ad
-            Rhs[c] += -self.data[i] * ad                 # data odp komorce
+            pC = sum(field.mesh.xy[field.mesh.cells[c], :]) / len(field.mesh.cells[c])              # srodek komorki
+            nr_kr_1, nr_kr_2 = field.mesh.list_kr[id_edge, 0], field.mesh.list_kr[id_edge, 1]
+            pK = (field.mesh.xy[nr_kr_1, :] + field.mesh.xy[nr_kr_2, :]) / 2                        # srodek scianki to samo co ck1 i ck2 ale od razu dla 2 wsp srodka sciany [x,y]
+
+            CK = pK - pC
+            Snorm = field.mesh.Se[id_edge]
+            a = edgeFieldCoeff.data[id_edge] * np.dot(CK, Snorm) / np.dot(CK, CK)
+
+            EqMat[c, c] += - a
+            Rhs[c] -= self.data[i] * a                 # wartosc na brzegu przemnozona przez wspolczynnik. -= bo przerzucamy do wekt. prawych stron
 
 
     def insertConvectiveFlux(self, EqMat, Rhs, phi):
@@ -143,10 +146,7 @@ class Neuman(BoundaryField):                                        # klasa dla 
         for i in range(len(self.mesh.boundaries[self.id])):
             id_edge = self.mesh.boundaries[self.id, i]                          # indeks krawedzi w WB
             c = self.field.mesh.list_kr[id_edge, 2]                             # indeks wlasciciela do niego dopicac w rhs
-            nr_kr_1, nr_kr_2 = self.field.mesh.list_kr[id_edge, 0], self.field.mesh.list_kr[id_edge, 1]
-            wekt_ws = self.field.mesh.wsp_wekt_z_wsp(self.field.mesh.xy[nr_kr_1, :], self.field.mesh.xy[nr_kr_2, :])
-
-            Rhs[c] += edgeFieldCoeff.data[id_edge] * self.deriv * self.field.mesh.dl_wekt(wekt_ws[0], wekt_ws[1])      #  dodac razy dlugosc
+            Rhs[c] += edgeFieldCoeff.data[id_edge] * self.deriv * self.field.mesh.eLengths[id_edge]      #  dodac razy dlugosc
 
     def insertConvectiveFlux(self, EqMat, Rhs, phi):
         for i, _ in enumerate(self.mesh.boundaries[self.id]):

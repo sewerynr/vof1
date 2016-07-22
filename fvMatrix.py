@@ -6,8 +6,8 @@ class fvMatrix:                   # do sparse co na przek, jakie wartosci (data)
                 # kopie list
         if isinstance(meshOrMatrix, fvMatrix):           # czy meshOrMatrix jest obiektem fvMatrix
             self.data = list(meshOrMatrix.data)
-            self.indices = list(meshOrMatrix.indices)
-            self.diag = list(meshOrMatrix.diag)          # kopia list
+            self.indices = list(meshOrMatrix.indices)       # kopia list
+            self.diag = list(meshOrMatrix.diag)
         else:
             if isinstance(meshOrMatrix, int):            # jezeli ktos poda int jako rozmiar macierzy
                 N = meshOrMatrix
@@ -110,6 +110,12 @@ class fvMatrix:                   # do sparse co na przek, jakie wartosci (data)
         mat.mul(other)
         return mat
 
+    def __neg__(self):
+        mat = fvMatrix(self)
+        mat.mul(-1.)
+        return mat
+
+
 # definiowanie operacji na macierzach (obiektach tej klasy)
 
     def reset_cache(self):
@@ -133,9 +139,6 @@ class fvMatrix:                   # do sparse co na przek, jakie wartosci (data)
             self.diag[row] -= other.diag[row]
             for col, val in zip(ind, da):
                 self.addEntry(row, col, -val)
-
-
-
 
         self.reset_cache()
 
@@ -161,7 +164,7 @@ class fvMatrix:                   # do sparse co na przek, jakie wartosci (data)
             self.diag[row] += value
 
         elif col in self.indices[row]:
-            colLocalId=-1
+            colLocalId = -1
             for i, id in enumerate(self.indices[row]):
                 if id == col:
                     colLocalId = i
@@ -221,7 +224,7 @@ class fvMatrix:                   # do sparse co na przek, jakie wartosci (data)
         for rowId, d in enumerate(self.data):
             sumLen += len(d)
             if self.diag[rowId] != 0:
-                sumLen+=1
+                sumLen += 1
 
             rowLengths.append(sumLen)
         return rowLengths

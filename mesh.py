@@ -124,8 +124,8 @@ class Mesh:
         return xwekt, ywekt
 
     def wsp_wekt_z_wsp(self, w1, w2):            # pobiera dwa pkt w1[x1,y1],  w2[x2,y2]
-        xwekt = w1[0] - w2[0]                    # roznica wsp x z pktow w1 i w2
-        ywekt = w1[1] - w2[1]
+        xwekt = w2[0] - w1[0]                    # roznica wsp x z pktow w1 i w2
+        ywekt = w2[1] - w1[1]
         return xwekt, ywekt
 
     def dl_wekt(self, xwekt, ywekt):
