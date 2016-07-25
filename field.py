@@ -177,10 +177,10 @@ class symmetry(Neuman):                                                         
 
 
 
-class SurfField:                                                   # to jest po prostu field z wartosciami rozwiazania dziedziczy po np.array
+class SurfField:
     def __init__(self, mesh, bcGenerator=BoundaryField):                        # pobiera mesh a z nim jego rozmiar i boundaries czyli WB
         #self.data = np.array([0.]*mesh.n)                         # [0.]*mesh.n lista zer o rozmiarze mesh.n
-        self.data = np.zeros(mesh.n)                               # zamien lem
+        self.data = np.zeros(mesh.n)
 
         self.boundaries = []
 
@@ -205,8 +205,8 @@ class SurfField:                                                   # to jest po 
         self.boundaries[bcObject.id] = bcObject         # przypisuje do tej listy (***) (tylko z numerami krawedzi WB) zadane przez urzytkownika WB
 
     def updateBoundaryValues(self):
-        for b in self.boundaries:  # b kolejny warunek brzegowy tu 4 warunki
-            b.upadate(self.data)  # przekaz pole temp do funkcji upadate
+        for b in self.boundaries:            # b kolejny warunek brzegowy tu 4 warunki
+            b.upadate(self.data)             # przekaz pole temp do funkcji upadate
 
     def setValues(self, lista_wart):           # pobiera rozwiazanie ukladu rownan (pole temp) - uaktualnia wartosci pola temp tak aby na krawedziach WB neumana byly temp nie strumienie ciepla (do wizualizacji)
         self.data = lista_wart                 # rozwiazanie tu tablica "A"
@@ -286,8 +286,8 @@ class EdgeField:
 
 def quadratic_velocity(pc, tanPc, r):
     U = 10.
-    if r <= 0.5:
-        return tanPc*U*(-(4*r-1.)**2+1.)
+    if r <= 0.33:
+        return tanPc*U*(-(6*r-1.)**2+1.)
     else:
         return np.array([0., 0.])
 
@@ -298,7 +298,7 @@ def generate_phi_r(mesh, velcity_function):           #po krawedziach
         p1, p2 = mesh.xy[kraw[:2]]
         pc = (p1 + p2)/2. - [0.5, 0.5]
         r = np.sqrt(pc.dot(pc))
-        tan = np.array([-pc[1], pc[0]])         # normalna do pc[x, y] = pcn[-y, x]
+        tan = np.array([-pc[1], pc[0]])
         tan = tan / np.sqrt(tan.dot(tan))
         U = velcity_function(pc, tan, r)
         vals[i] = U.dot(mesh.normals[i])
@@ -310,15 +310,21 @@ def generate_phi_1(mesh):
     for i, kraw in enumerate(mesh.list_kr):
         p1, p2 = mesh.xy[kraw[:2]]              # zczytaj punkty krawedzi  (dwie pierwsze liczby z list_kr) i pobierz ich wsp x , y
         pc = (p1 + p2)/2.                       # srodek krawedzi
-        U = [10, 10]
+        U = [1, 0]
         U = np.array([U[0], U[1]])
         vals[i] = U.dot(mesh.edge_normal(i))    # rzut na normalna do konkretnej krawedzi - phi
     return vals
 
 
+def constant_velocity(pc, tanPc, r):
+    return np.array([1., 0.])
+
 def generate_u(mesh, velcity_function):
     Ux = SurfField(mesh, Dirichlet)
     Uy = SurfField(mesh, Dirichlet)
+    # Ux = SurfField(mesh, Neuman)
+    # Uy = SurfField(mesh, Neuman)
+
 
     vals = np.zeros((len(mesh.cell_centers), 2), dtype=float)
 

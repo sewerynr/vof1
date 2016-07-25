@@ -8,14 +8,21 @@ class fvMatrix:                   # do sparse co na przek, jakie wartosci (data)
             self.data = list(meshOrMatrix.data)
             self.indices = list(meshOrMatrix.indices)       # kopia list
             self.diag = list(meshOrMatrix.diag)
+            self.N = meshOrMatrix.N
+            self.M = meshOrMatrix.M
         else:
             if isinstance(meshOrMatrix, int):            # jezeli ktos poda int jako rozmiar macierzy
-                N = meshOrMatrix
+                self.N = meshOrMatrix
+                self.M = self.N
+            elif isinstance(meshOrMatrix, tuple):           # (liczba, liczba)
+                self.N, self.M = meshOrMatrix
             else:                                        # jesli argument wejsciowy to mesh
-                N = meshOrMatrix.n
-            self.data = [list() for i in range(N)]
-            self.indices = [list() for i in range(N)]
-            self.diag = [0. for i in range(N)]
+                self.N = meshOrMatrix.n
+                self.M = self.N
+
+            self.data = [list() for i in range(self.N)]
+            self.indices = [list() for i in range(self.N)]
+            self.diag = [0. for i in range(self.N)]
 
         # domyslnie nie ma tych wartosci dopoki ich nie utworzy
         self.__cache__ = None                            # nie istnieje obiekt cache
@@ -31,7 +38,7 @@ class fvMatrix:                   # do sparse co na przek, jakie wartosci (data)
         if self.__cache__ is None:          # gdy nie istnieje to:
             self.optimize()                 # (***) wywolaj optimize() ktora wpisuje wartosci do list
             from scipy.sparse import csr_matrix  # zaimportuj macierze rzadkie
-            self.__cache__ = csr_matrix((self.vectorData, self.vectorIndices, self.rowLengths), shape=(len(self.data), len(self.data)), dtype=float)
+            self.__cache__ = csr_matrix((self.vectorData, self.vectorIndices, self.rowLengths), shape=self.shape, dtype=float)
 
         return self.__cache__   # teraz juz utworzona wiec zapisuje ja (zeby nie tworzyc tego kilka razy)
 
@@ -83,6 +90,18 @@ class fvMatrix:                   # do sparse co na przek, jakie wartosci (data)
 
         return F
 
+
+    def dot(self, X):
+        if X.shape[1] is None:
+            return self.matvec(X)
+        else:
+            #implement matrix - matrix multiplication
+            pass
+
+    @property
+    def T(self):
+        pass #implent transposition
+
     def relax(self, coeff=0.5):
         for i in range(self.shape[0]):
             self.data[i] = [ d*coeff for d in self.data[i] ]
@@ -91,8 +110,7 @@ class fvMatrix:                   # do sparse co na przek, jakie wartosci (data)
 
     @property
     def shape(self):
-        N = len(self.data)
-        return (N, N)
+        return (self.N, self.M)
 
     # definiujemy operacje na macierzach :
     def __add__(self, other):

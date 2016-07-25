@@ -150,7 +150,7 @@ def div(phi, field, matrixGeneratorFunction = fvMatrix):                  # phi 
     return D, Rhs
 
 
-def eInt(edgeField):
+def eInt(edgeField):            # P * phi
     import numpy as np
 
     mesh = edgeField.mesh
@@ -165,16 +165,35 @@ def eInt(edgeField):
     return res
 
 
-def eInt_implicit(mesh):
-    pass
+def eInt_implicit(mesh, matrixGen = lambda dims : np.zeros(shape=dims)):        # P
+    import numpy as np
+
+    res = matrixGen( (mesh.n, len(mesh.list_kr)) )      #jesli wywolujac eInt_implicit nie podamy to wywola lambda
+
+    for i, (k) in enumerate(mesh.list_kr):
+        eLen = mesh.eLengths[i]
+        res[k[2], i] = eLen
+        if k[3] > -1:
+            res[k[3], i] = - eLen
+
+    return res
 
 
 def adjustPhi(phiEdgeField):
-    pass
+    import numpy as np
+    P = eInt_implicit(phiEdgeField.mesh)
+    M = P.dot(P.T)
+    F = P.dot(phiEdgeField.data)
 
+    from scipy.sparse import csr_matrix
+    from scipy.sparse.linalg import cg
 
+    M = csr_matrix(M)
 
+    Lambda = cg(M, F)[0]
 
+    dPhi = - P.T.dot(Lambda)
+    phiEdgeField.data += dPhi
 
 
 def WB_dir_T1(lista_kr, Td, wsp_wezl, macierz_K_e, rhs):
