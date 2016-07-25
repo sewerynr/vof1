@@ -8,13 +8,13 @@ einterp = EdgeField.interp
 DlPrzX = 1.
 DlPrzY = 1.
 
-n = 40
+n = 80
 dx = DlPrzX/n
 dy = DlPrzY/n
 
-dt = 0.0005                                                      # CFL u*dt/dx <= 1   => dt = dx/u
+dt = 0.001                                                      # CFL u*dt/dx <= 1   => dt = dx/u
 tp = 0
-tk = 80
+tk = 40
 
 nt = (tk - tp)/dt
 
@@ -25,14 +25,24 @@ node_c, cells, bound = siatka_regularna_prost(n, dx, dy, x0, y0)
 
 mesh = Mesh(node_c, cells, bound)                                # 1. tworzy obiekt mesh klasy Mesh, 2. generujemy siatke dla tego obiektu funkcja siatka_reg...
 
-diffusivity = 0.00001
+diffusivity = 0.001
 
 Tdir = 1
 TdirWB = 0
 
 T = SurfField(mesh, Dirichlet)                                    # temp w srodkach komorek
 
-
+# print mesh.list_kr
+#
+# plt.figure()
+# for k in mesh.list_kr:
+#     p1, p2 = k[:2]
+#     p1 = mesh.xy[p1]
+#     p2 = mesh.xy[p2]
+#     plt.plot([p1[0],p2[0]], [p1[1], p2[1]], "-b")
+# plt.show()
+#
+# exit()
 #T.setBoundaryCondition(Neuman(mesh, 0, 0))                       # zero odpowiada zerowej krawedzi pobiera obiekt klasy Dirichlet (wywoluje go i tworzy)
 #T.setBoundaryCondition(Dirichlet(mesh, 0, TdirWB))
 
@@ -40,16 +50,27 @@ T = SurfField(mesh, Dirichlet)                                    # temp w srodk
 #T.setBoundaryCondition(Dirichlet(mesh, 1, TdirWB))
 
 #T.setBoundaryCondition(Neuman(mesh, 2, 0))
-T.setBoundaryCondition(Dirichlet(mesh, 2, 10))
+T.setBoundaryCondition(Dirichlet(mesh, 0, 1.))
+T.setBoundaryCondition(Dirichlet(mesh, 1, 1.))
+T.setBoundaryCondition(Dirichlet(mesh, 2, 1.))
+T.setBoundaryCondition(Dirichlet(mesh, 3, 1.))
+T.data[:] = 1.
+
 
 np.set_printoptions(precision=6)
 
-# Ux, Uy = generate_u(mesh, quadratic_velocity)                   # stworz w srodkach komorek
-# edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))              # przenies za pomoca .interp do krawedzi
-# phi = edgeU.dot(mesh.normals)                                   # oblicz UnaKrawedzi * normalnaDoKrawedzi = (skalar)
+Ux, Uy = generate_u(mesh, quadratic_velocity)                   # stworz w srodkach komorek
+edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))              # przenies za pomoca .interp do krawedzi
+phi = edgeU.dot(mesh.normals)                                   # oblicz UnaKrawedzi * normalnaDoKrawedzi = (skalar)
 
-phi = EdgeField(mesh)
-phi.data = np.multiply(generate_phi_r(mesh, quadratic_velocity), mesh.eLengths)
+
+# phi = EdgeField(mesh)
+# phi.data = np.multiply(generate_phi_r(mesh, quadratic_velocity), mesh.eLengths)
+
+
+# !!!!!!!!!!! blad dywergencji !!!!!!!!!!!!
+# animate_contour_plot([inter(mesh.xy, mesh.cells, eInt(phi)).reshape((n+1, n+1))], skip=10, repeat=False, interval=75)
+# plt.show()
 
 
 Md, Fd = laplace(diffusivity, T)
@@ -88,7 +109,11 @@ step = 100
 for iter in range(int(nt)):
     licznik = licznik + 1
     #print 'time iteration:', iter
-    solution = bicgstab(A=M.sparse, b=F + source(mesh, T.data/dt), x0=T.data)[0]
+
+    solution = bicgstab(A=M.sparse, b=F + source(mesh, T.data/dt), x0=T.data, tol=1e-8)[0]
+
+    # solution = np.linalg.solve(a=Mdens, b=F + source(mesh, T.data / dt))
+
     # print "M ", M.sparse.data
     # print "F ", F
     # print "T ", source(mesh, T.data/dt)
@@ -104,7 +129,7 @@ for iter in range(int(nt)):
 #print zliczacz
 
 # Animate results:
-anim = animate_contour_plot(Results, skip=10, repeat=False, interval=75, nLevels=20, dataRange=[0., 10])
+anim = animate_contour_plot(Results, skip=1, repeat=False, interval=75, nLevels=20, dataRange=[0., 10])
 plt.show()
 
 

@@ -211,7 +211,7 @@ class Mesh:
             #     if flag:
             #         pairs.append((i1, i2))
 
-        print ">>>>>>>>> m ", time.clock() - start
+        print ">>>>>>>>> ", time.clock() - start
         start = time.clock()
 
 

@@ -140,23 +140,42 @@ def div(phi, field, matrixGeneratorFunction = fvMatrix):                  # phi 
 
         #Central
         # if k[3] > -1:
-        #     if phiEdge > 0:  # od wlasiciela do sasiada
-        #         D[w, w] -= phiEdge * edgeLen / (2 * field.mesh.cell_area[w])
-        #         D[w, s] -= phiEdge * edgeLen / (2 * field.mesh.cell_area[w])
-        #
-        #         D[s, s] += phiEdge * edgeLen / (2 * field.mesh.cell_area[s])
-        #         D[s, w] += phiEdge * edgeLen / (2 * field.mesh.cell_area[s])
-        #     elif phiEdge == 0:
-        #         pass
-        #     else:   # phiedge < 0 mniejsze od sasiada do wlasciciela
-        #         D[s, s] += phiEdge * edgeLen / (2 * field.mesh.cell_area[s])
-        #         D[s, w] += phiEdge * edgeLen / (2 * field.mesh.cell_area[s])
-        #
-        #         D[w, w] -= phiEdge * edgeLen / (2 * field.mesh.cell_area[w])
-        #         D[w, s] -= phiEdge * edgeLen / (2 * field.mesh.cell_area[w])
+        #         D[w, w] -= phiEdge * edgeLen / 2
+        #         D[w, s] -= phiEdge * edgeLen / 2
+        #         D[s, s] += phiEdge * edgeLen / 2
+        #         D[s, w] += phiEdge * edgeLen / 2
+
 
     field.apply_bc_convectiveFlux(D, Rhs, phi.data)
     return D, Rhs
+
+
+def eInt(edgeField):
+    import numpy as np
+
+    mesh = edgeField.mesh
+    res = np.zeros(len(mesh.cell_centers))
+
+    for i, (v, k) in enumerate(zip(edgeField.data, mesh.list_kr)):
+        eLen = mesh.eLengths[i]
+        res[k[2]] += v * eLen
+        if k[3] > -1:
+            res[k[3]] -= v * eLen
+
+    return res
+
+
+def eInt_implicit(mesh):
+    pass
+
+
+def adjustPhi(phiEdgeField):
+    pass
+
+
+
+
+
 
 def WB_dir_T1(lista_kr, Td, wsp_wezl, macierz_K_e, rhs):
     # warunki brzegowe 1) jako T w centrum komorki wiec po prostu w macierz K wpisuje w miejsce odp sr. kom 1 a w wektor pr stron = danej temp

@@ -57,7 +57,7 @@ from scipy.sparse.linalg.isolve.iterative import bicgstab
 
 gradP = grad(p)
 
-for i in range(3):
+for i in range(5):
     print "iter", i
 
     edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))  # pole wektorowe predkosci [Ux, Uy] wyinterpolowanych wartosci na krawedzie (ze sr komurek  EdgeField.interp)
@@ -66,11 +66,11 @@ for i in range(3):
     Mxc, Fxc = div(phi, Ux)  # ukladanie macierzy i wektora prawych stron, dostaje D i Rhs z div
     Myc, Fyc = div(phi, Uy)
 
-    momX_M = Mxc - Mxd * viscosity
-    momY_M = Myc - Myd * viscosity
+    momX_M = Mxc + Mxd * viscosity
+    momY_M = Myc + Myd * viscosity
 
     momX_F = Fxc - Fxd * viscosity - gradP[:, 0]*mesh.cells_areas
-    momY_F = Fyc - Fyd * viscosity - gradP[:, 1]*mesh.cells_areas
+    momY_F = Fyd * viscosity - gradP[:, 1]*mesh.cells_areas - Fyc
 
     # momX_M.relax(0.3)
     # momY_M.relax(0.3)

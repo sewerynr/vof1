@@ -196,7 +196,7 @@ class fvMatrix:                   # do sparse co na przek, jakie wartosci (data)
 
         self.reset_cache()
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key, value):                  # !!!!!!!!! to jako dodawanie do macierzy D[w,s]
         self.setEntry(key[0], key[1], value)
 
     def __getitem__(self, item):

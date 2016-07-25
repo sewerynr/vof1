@@ -177,15 +177,15 @@ class symmetry(Neuman):                                                         
 
 
 
-class SurfField:                                     # to jest po prostu field z wartosciami rozwiazania dziedziczy po np.array
+class SurfField:                                                   # to jest po prostu field z wartosciami rozwiazania dziedziczy po np.array
     def __init__(self, mesh, bcGenerator=BoundaryField):                        # pobiera mesh a z nim jego rozmiar i boundaries czyli WB
-        #self.data = np.array([0.]*mesh.n)           # [0.]*mesh.n lista zer o rozmiarze mesh.n
-        self.data = np.zeros(mesh.n)            # zamien lem
+        #self.data = np.array([0.]*mesh.n)                         # [0.]*mesh.n lista zer o rozmiarze mesh.n
+        self.data = np.zeros(mesh.n)                               # zamien lem
 
         self.boundaries = []
 
         for i, _ in enumerate(mesh.boundaries):
-            bc = bcGenerator(mesh, i)
+            bc = bcGenerator(mesh, i)                              # wywoluje BonduaryField z meshem i z numerem krawedzi
             bc.setField(self)
             self.boundaries.append(bc)
 
@@ -301,7 +301,7 @@ def generate_phi_r(mesh, velcity_function):           #po krawedziach
         tan = np.array([-pc[1], pc[0]])         # normalna do pc[x, y] = pcn[-y, x]
         tan = tan / np.sqrt(tan.dot(tan))
         U = velcity_function(pc, tan, r)
-        vals[i] = U.dot(mesh.edge_normal(i))
+        vals[i] = U.dot(mesh.normals[i])
 
     return vals
 
@@ -317,8 +317,8 @@ def generate_phi_1(mesh):
 
 
 def generate_u(mesh, velcity_function):
-    Ux = SurfField(mesh, Neuman)
-    Uy = SurfField(mesh, Neuman)
+    Ux = SurfField(mesh, Dirichlet)
+    Uy = SurfField(mesh, Dirichlet)
 
     vals = np.zeros((len(mesh.cell_centers), 2), dtype=float)
 
