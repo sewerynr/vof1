@@ -1,13 +1,14 @@
 # macierz dla obliczen pedu bedzie sie zmieniala wiec trzeba bedzie ja modyfikowac z kroku na krok.
 
+from copy import deepcopy
 
 class fvMatrix:                   # do sparse co na przek, jakie wartosci (data) w jakim miejscu (indeses - kolumy)
     def __init__(self, meshOrMatrix):
                 # kopie list
         if isinstance(meshOrMatrix, fvMatrix):           # czy meshOrMatrix jest obiektem fvMatrix
-            self.data = list(meshOrMatrix.data)
-            self.indices = list(meshOrMatrix.indices)       # kopia list
-            self.diag = list(meshOrMatrix.diag)
+            self.data = deepcopy(meshOrMatrix.data)
+            self.indices = deepcopy(meshOrMatrix.indices)       # kopia list
+            self.diag = deepcopy(meshOrMatrix.diag)
             self.N = meshOrMatrix.N
             self.M = meshOrMatrix.M
         else:
@@ -261,6 +262,7 @@ class fvMatrix:                   # do sparse co na przek, jakie wartosci (data)
             mat.diag = [diagValue for i in range(mat.shape[0])]
         elif len(diagValue) == mat.shape[0]:
             mat.diag = diagValue
+
         else:
             raise Exception("Can't assign vector of length "+str(len(diagValue)) +
                             " to diagonal of matrix "+str(mat.shape))

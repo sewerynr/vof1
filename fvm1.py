@@ -86,7 +86,6 @@ def laplace(coeff, field, matrixGeneratorFunction = fvMatrix):    # matrixProvid
 
     edgeCoeff = EdgeField.interp(coeffField)
 
-
     for i, kraw in enumerate(lista_kra):
         if kraw[3] > -1:
             k1, k2, c, f = kraw
@@ -103,8 +102,8 @@ def laplace(coeff, field, matrixGeneratorFunction = fvMatrix):    # matrixProvid
             # kazda krawedz tylko raz ale strumien na niej jest bilansowany w dwoch sasiadujacych komorkach, dlatego
             # takie same wsp (nawet znak, bo kierunek normalnej oraz kierunek od srodka do drugiej sie razem obracaja)
             # wiec dokladnie te same wspol. ida do rownania o indeksie takim jak sasiad
-            macierz_K_e[f, f] += - a # krawedz wplywa na rownanie sasiada, teraz sasiad jest w centrum komorki
-            macierz_K_e[f, c] += a # a poza diagonala jest wlasciciel
+            macierz_K_e[f, f] += - a    # krawedz wplywa na rownanie sasiada, teraz sasiad jest w centrum komorki
+            macierz_K_e[f, c] += a      # a poza diagonala jest wlasciciel
 
     rhs = np.zeros(n)
 
@@ -126,14 +125,14 @@ def div(phi, field, matrixGeneratorFunction = fvMatrix):                  # phi 
         w, s = k[2:]
         edgeLen = mesh.eLengths[i]
         phiEdge = phi.data[i]                                # pobiera wartosci predkosci z macierzy phi[dla elementu i]
-
+        print phiEdge, w, s
         #!!!!!!!!!!!!!!!!!!!!!!!!!!!! Wiersz mowi ktora komorka kolumna co i skad wlata wylata  (strumien o jakiejs temp)   !!!!!!!!!!!!!!!!!!!!!!!!!!
 
         # Upiwnd
         if s > -1:
             if phiEdge > 0:                              # od wlasiciela do sasiada
                 D[w, w] += phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
-                D[s, w] -= phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
+                D[s, w] += phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
             else:                                        # phiedge < 0 mniejsze od sasi ada do wlasciciela
                 D[s, s] -= phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [od sasiada , z temp sasiada]
                 D[w, s] += phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [do wl , temp sasiada]

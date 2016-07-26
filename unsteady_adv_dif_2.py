@@ -8,55 +8,57 @@ einterp = EdgeField.interp
 DlPrzX = 1.
 DlPrzY = 1.
 
-n = 40
+n = 30
+
 dx = DlPrzX/n
 dy = DlPrzY/n
 
-dt = 0.002                                                      # CFL u*dt/dx <= 1   => dt = dx/u
+dt = 0.001                                                      # CFL u*dt/dx <= 1   => dt = dx/u
 tp = 0
-tk = 30
+tk = 1
 
 nt = (tk - tp)/dt
 
 x0, y0, dl = (0, 0, 0)
-
+diffusivity = 0.1
 
 node_c, cells, bound = siatka_regularna_prost(n, dx, dy, x0, y0)
 
 mesh = Mesh(node_c, cells, bound)                                # 1. tworzy obiekt mesh klasy Mesh, 2. generujemy siatke dla tego obiektu funkcja siatka_reg...
 
-diffusivity = 0.01
-
-Tdir = 1
-TdirWB = 0
+# Tdir = 1
+# TdirWB = 0.
 
 T = SurfField(mesh, Dirichlet)                                    # temp w srodkach komorek
 
 
 # T.setBoundaryCondition(Neuman(mesh, 0, 0))                       # zero odpowiada zerowej krawedzi pobiera obiekt klasy Dirichlet (wywoluje go i tworzy)
-#T.setBoundaryCondition(Dirichlet(mesh, 0, TdirWB))
+# T.setBoundaryCondition(Dirichlet(mesh, 0, TdirWB))
 
 # T.setBoundaryCondition(Neuman(mesh, 1, 0))
-#T.setBoundaryCondition(Dirichlet(mesh, 1, TdirWB))
+# T.setBoundaryCondition(Dirichlet(mesh, 1, TdirWB))
 
 #T.setBoundaryCondition(Neuman(mesh, 2, 0))
-T.setBoundaryCondition(Dirichlet(mesh, 2, 1.))
+T.setBoundaryCondition(Dirichlet(mesh, 2, 10))
 
 
 # T.setBoundaryCondition(Neuman(mesh, 3, 0))
-# T.setBoundaryCondition(Dirichlet(mesh, 3, 1.))
+# T.setBoundaryCondition(Dirichlet(mesh, 3, 0.))
 
-# T.data[:] = 1.
+T.data[:] = 0.
 
 np.set_printoptions(precision=6)
 
-Ux, Uy = generate_u(mesh, constant_velocity)                   # stworz w srodkach komorek
-edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))              # przenies za pomoca .interp do krawedzi
-phi = edgeU.dot(mesh.normals)                                   # oblicz UnaKrawedzi * normalnaDoKrawedzi = (skalar)
-
+Ux, Uy = generate_u(mesh, quadratic_velocity)                   # stworz w srodkach komorek
 
 # Ux.setBoundaryCondition(Dirichlet(mesh, 3, 1))
 # Ux.setBoundaryCondition(Dirichlet(mesh, 1, 1))
+# Ux.setBoundaryCondition(Dirichlet(mesh, 0, 1))
+# Ux.setBoundaryCondition(Dirichlet(mesh, 2, 1))
+
+
+edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))              # przenies za pomoca .interp do krawedzi
+phi = edgeU.dot(mesh.normals)                                   # oblicz UnaKrawedzi * normalnaDoKrawedzi = (skalar)
 
 
 # phi = EdgeField(mesh)
@@ -84,10 +86,14 @@ Mc, Fc = div(phi, T)
 
 Mass = fvMatrix.diagonal(mesh, mesh.cells_areas / dt)
 
-M = Mass + Mc + Md
-F = Fd - Fc
+M = Mass + Mc - Md
+F = Fc - Fd
 
-
+# print Mc.diag
+# print Md.diag
+# print M.diag
+# print M.sparse
+# print M.data
 # wypelnij polowe temperatura
 # for i, point in enumerate(T.data):
 #     if i < (n**2)/2:
@@ -101,47 +107,41 @@ from scipy.sparse.linalg.isolve.iterative import bicgstab
 
 licznik = 0
 step = 10
-#zliczacz = 0
+print "T ", T.data
 
-for iter in range(int(nt)):
+
+for iter in range(int(1)):
     licznik = licznik + 1
     #print 'time iteration:', iter
 
     solution = bicgstab(A=M.sparse, b=F + source(mesh, T.data/dt), x0=T.data, tol=1e-8)[0]
 
-    # solution = np.linalg.solve(a=Mdens, b=F + source(mesh, T.data / dt))
+    # solution = np.linalg.solve(a=M.dens, b=F + source(mesh, T.data / dt))
 
     # print "M ", M.sparse.data
     # print "F ", F
-    # print "T ", source(mesh, T.data/dt)
-    # print "T ", T.data
+    # print "T:", source(mesh, T.data/dt)
+    # print "T.dat", T.data
 
     T.setValues(solution)
     if licznik == step:
         Results.append(T.data.reshape((n, n)))
-        #zliczacz = zliczacz + 1
         licznik = 0
         print "pozostalo: ", int(nt - iter)
 
-#print zliczacz
-
-# Animate results:
-anim = animate_contour_plot(Results, skip=1, repeat=False, interval=75, nLevels=20, dataRange=[0., 1])
-plt.show()
-
+# anim = animate_contour_plot(Results, skip=4, repeat=False, interval=75, nLevels=20, dataRange=[0., 1])
 
 # from interpolacja import inter
 #
 # animate_contour_plot([inter(mesh.xy, mesh.cells, T.data).reshape((n+1, n+1))], skip=10, repeat=False, interval=75, dataRange=[0, 10])
 #
-# from matplotlib.pyplot import quiver
+from matplotlib.pyplot import quiver
 # q = quiver(mesh.cell_centers[:, 0], mesh.cell_centers[:, 1], Ux[:], Uy[:])
-#
+
 # plt.show()
 
 
-# magU = np.sqrt(Ux.data**2 + Uy.data**2)
-# print magU.shape, n*n, Ux.data.shape
-# animate_contour_plot([magU.reshape(n, n)], skip=10, repeat=False, interval=75)
+magU = np.sqrt(Ux.data**2 + Uy.data**2)
+print magU.shape, n*n, Ux.data.shape
+animate_contour_plot([magU.reshape(n, n)], skip=10, repeat=False, interval=75)
 plt.show()
-

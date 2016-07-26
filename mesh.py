@@ -49,14 +49,14 @@ class Mesh:
         for i, edge in enumerate(self.list_kr):
             p1 = self.xy[edge[0], :]     # edge[0] mowi ktory wiesz czyli ktory pkt. : to wez x, y
             p2 = self.xy[edge[1], :]
-            x, y = self.wsp_wekt_z_wsp(p1,p2)
+            x, y = self.wsp_wekt_z_wsp(p2, p1)
             se[i] = [-y, x]
         #print se
         return se
 
     def __normals_and_edge_lengths__(self):
         magSqrt = np.sqrt(np.sum(np.multiply(self.Se, self.Se), axis=1))
-        return np.array([self.Se[:,0] / magSqrt, self.Se[:,1]/ magSqrt]).T, magSqrt
+        return np.array([self.Se[:, 0] / magSqrt, self.Se[:, 1] / magSqrt]).T, magSqrt
 
     def __cell_center__(self):
 
@@ -140,9 +140,11 @@ class Mesh:
         srkY = (y1+y2+y3+y4)/4
         return srkY
 
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! y,-x    to   -y,x
+
     def wektor_norm(self, x, y):
         xn = y
-        yn = - x
+        yn = -x
         dlw = (x**2 + y**2)**0.5
         nx = xn / dlw
         ny = yn / dlw

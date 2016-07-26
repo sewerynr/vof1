@@ -179,9 +179,7 @@ class symmetry(Neuman):                                                         
 
 class SurfField:
     def __init__(self, mesh, bcGenerator=BoundaryField):                        # pobiera mesh a z nim jego rozmiar i boundaries czyli WB
-        #self.data = np.array([0.]*mesh.n)                         # [0.]*mesh.n lista zer o rozmiarze mesh.n
         self.data = np.zeros(mesh.n)
-
         self.boundaries = []
 
         for i, _ in enumerate(mesh.boundaries):
@@ -190,9 +188,6 @@ class SurfField:
             self.boundaries.append(bc)
 
         self.mesh = mesh
-    # @property
-    # def values(self):
-    #     return self._sol
 
     def __setitem__(self, key, value):
         return self.data.__setitem__(key, value)
@@ -285,9 +280,9 @@ class EdgeField:
 
 
 def quadratic_velocity(pc, tanPc, r):
-    U = 10.
-    if r <= 0.33:
-        return tanPc*U*(-(6*r-1.)**2+1.)
+    U = 5.
+    if r <= 0.5:
+        return tanPc*U*(-(4*r-1.)**2+1.)
     else:
         return np.array([0., 0.])
 
@@ -310,14 +305,14 @@ def generate_phi_1(mesh):
     for i, kraw in enumerate(mesh.list_kr):
         p1, p2 = mesh.xy[kraw[:2]]              # zczytaj punkty krawedzi  (dwie pierwsze liczby z list_kr) i pobierz ich wsp x , y
         pc = (p1 + p2)/2.                       # srodek krawedzi
-        U = [1, 0]
+        U = [10, 0]
         U = np.array([U[0], U[1]])
         vals[i] = U.dot(mesh.edge_normal(i))    # rzut na normalna do konkretnej krawedzi - phi
     return vals
 
 
 def constant_velocity(pc, tanPc, r):
-    return np.array([1., 0.])
+    return np.array([3, 0.])
 
 def generate_u(mesh, velcity_function):
     Ux = SurfField(mesh, Dirichlet)
