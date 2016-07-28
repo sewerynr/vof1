@@ -280,7 +280,7 @@ class EdgeField:
 
 
 def quadratic_velocity(pc, tanPc, r):
-    U = 5.
+    U = 10.
     if r <= 0.5:
         return tanPc*U*(-(4*r-1.)**2+1.)
     else:
@@ -305,14 +305,14 @@ def generate_phi_1(mesh):
     for i, kraw in enumerate(mesh.list_kr):
         p1, p2 = mesh.xy[kraw[:2]]              # zczytaj punkty krawedzi  (dwie pierwsze liczby z list_kr) i pobierz ich wsp x , y
         pc = (p1 + p2)/2.                       # srodek krawedzi
-        U = [10, 0]
+        U = [0, 0]
         U = np.array([U[0], U[1]])
         vals[i] = U.dot(mesh.edge_normal(i))    # rzut na normalna do konkretnej krawedzi - phi
     return vals
 
 
 def constant_velocity(pc, tanPc, r):
-    return np.array([3, 0.])
+    return np.array([10, 0.])
 
 def generate_u(mesh, velcity_function):
     Ux = SurfField(mesh, Dirichlet)

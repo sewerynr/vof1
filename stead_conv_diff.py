@@ -5,29 +5,29 @@ einterp = EdgeField.interp
 
 DlPrzX = 1.
 DlPrzY = 1.
-n = 3
+n = 60
 dx = DlPrzX/n
 dy = DlPrzY/n
 x0, y0, dl = (0, 0, 0)
-diffusivity = 1
+diffusivity = 0.0001
 
 node_c, cells, bound = siatka_regularna_prost(n, dx, dy, x0, y0)
 mesh = Mesh(node_c, cells, bound)
 
 T = SurfField(mesh, Dirichlet)
 
-T.setBoundaryCondition(Dirichlet(mesh, 3, 1))
+T.setBoundaryCondition(Dirichlet(mesh, 2, 1))
 # T.setBoundaryCondition(Dirichlet(mesh, 0, -100))
 # T.setBoundaryCondition(Neuman(mesh, 1, 0))
 # T.setBoundaryCondition(Neuman(mesh, 3, 0))
 
 
-Ux, Uy = generate_u(mesh, constant_velocity)
+Ux, Uy = generate_u(mesh, quadratic_velocity)
 
-Ux.setBoundaryCondition(Dirichlet(mesh, 0, 3))
-Ux.setBoundaryCondition(Dirichlet(mesh, 1, 3))
-Ux.setBoundaryCondition(Dirichlet(mesh, 2, 3))
-Ux.setBoundaryCondition(Dirichlet(mesh, 3, 3))
+Ux.setBoundaryCondition(Dirichlet(mesh, 0, 0))
+Ux.setBoundaryCondition(Dirichlet(mesh, 1, 0))
+Ux.setBoundaryCondition(Dirichlet(mesh, 2, 0))
+Ux.setBoundaryCondition(Dirichlet(mesh, 3, 0))
 
 edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))
 # print "einterpUx",einterp(Ux).data
@@ -38,7 +38,7 @@ phi = edgeU.dot(mesh.normals)
 # phi = EdgeField(mesh)
 # phi.data = generate_phi_r(mesh, constant_velocity) #np.multiply(, mesh.eLengths)
 
-# adjustPhi(phi)
+adjustPhi(phi)
 
 Md, Fd = laplace(diffusivity, T)
 Mc, Fc = div(phi, T)

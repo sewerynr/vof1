@@ -125,14 +125,13 @@ def div(phi, field, matrixGeneratorFunction = fvMatrix):                  # phi 
         w, s = k[2:]
         edgeLen = mesh.eLengths[i]
         phiEdge = phi.data[i]                                # pobiera wartosci predkosci z macierzy phi[dla elementu i]
-        print phiEdge, w, s
         #!!!!!!!!!!!!!!!!!!!!!!!!!!!! Wiersz mowi ktora komorka kolumna co i skad wlata wylata  (strumien o jakiejs temp)   !!!!!!!!!!!!!!!!!!!!!!!!!!
 
         # Upiwnd
         if s > -1:
             if phiEdge > 0:                              # od wlasiciela do sasiada
                 D[w, w] += phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
-                D[s, w] += phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
+                D[s, w] -= phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
             else:                                        # phiedge < 0 mniejsze od sasi ada do wlasciciela
                 D[s, s] -= phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [od sasiada , z temp sasiada]
                 D[w, s] += phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [do wl , temp sasiada]
@@ -289,7 +288,7 @@ def draw_edges(wsp_wezl, lista_kr):
     # plt.show()
 
 
-def animate_contour_plot(framesDatas, sizeX=(0, 1), sizeY=(0, 1), dataRange=None, nLevels=10, skip=1, repeat=False, interval=5):
+def animate_contour_plot(framesDatas, sizeX=(0, 1), sizeY=(0, 1), dataRange=None, nLevels=10, skip=1, repeat=False, interval=5, diff=1., dt=1., nN=1., Tempa=1.):
     """
     Function which make animation from set of 2D data on cartesian grid
     :param framesDatas: List of 2D numpy.arrays containing nodal values
@@ -323,6 +322,13 @@ def animate_contour_plot(framesDatas, sizeX=(0, 1), sizeY=(0, 1), dataRange=None
     cs = plt.contourf(X, Y, framesDatas[0], ticks)
     cbar = fig.colorbar(cs, ticks=ticks)
     cbar.ax.set_yticklabels(map(str, ticks))
+    Aa = str(diff)
+    Ba = str(dt)
+    Ca = str(nN)
+    Ta = str(Tempa)
+    Aa = "diff: " + Aa + "  dt: "+ Ba + "  n: " + Ca
+    print Aa
+    cbar.ax.set_ylabel(Aa)
 
     if len(framesDatas) > 1:
         def animate(i):
