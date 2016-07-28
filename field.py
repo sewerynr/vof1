@@ -281,8 +281,8 @@ class EdgeField:
 
 def quadratic_velocity(pc, tanPc, r):
     U = 10.
-    if r <= 0.5:
-        return tanPc*U*(-(4*r-1.)**2+1.)
+    if r <= 0.33:
+        return tanPc*U*(-(6*r-1.)**2+1.)
     else:
         return np.array([0., 0.])
 

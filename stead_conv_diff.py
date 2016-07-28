@@ -3,13 +3,14 @@ from interpolacja import *
 import numpy as np
 einterp = EdgeField.interp
 
+adj = 0
 DlPrzX = 1.
 DlPrzY = 1.
-n = 60
+n = 40
 dx = DlPrzX/n
 dy = DlPrzY/n
 x0, y0, dl = (0, 0, 0)
-diffusivity = 0.0001
+diffusivity = 0.001
 
 node_c, cells, bound = siatka_regularna_prost(n, dx, dy, x0, y0)
 mesh = Mesh(node_c, cells, bound)
@@ -38,16 +39,16 @@ phi = edgeU.dot(mesh.normals)
 # phi = EdgeField(mesh)
 # phi.data = generate_phi_r(mesh, constant_velocity) #np.multiply(, mesh.eLengths)
 
-adjustPhi(phi)
+adjustPhi(phi, mesh)
 
 Md, Fd = laplace(diffusivity, T)
 Mc, Fc = div(phi, T)
 
 from scipy.sparse.linalg.isolve.iterative import bicgstab
 
-# pkt1 = n/2 + n*n/2                       # pkt srodek
-# pkt2 = n/2 + n*5                           # srodek 4 wiersze od spodu
-# pkt3 = n/2 + n*(n-5)                     # srodek 4 wiersze od gory
+# pkt1 = n/2 + n*n/2                           # pkt srodek
+# pkt2 = n/2 + n*5                             # srodek 4 wiersze od spodu
+# pkt3 = n/2 + n*(n-5)                         # srodek 4 wiersze od gory
 # Fd[pkt1] += -300
 # Fd[pkt2] += 1
 # Fd[pkt3] += -200
@@ -81,7 +82,7 @@ T.setValues(res)
 print ">>>> info: ", info
 
 # animate_contour_plot([T.data.reshape(n, n)], skip=10, repeat=False, interval=75)
-animate_contour_plot([inter(mesh.xy, mesh.cells, T.data).reshape((n+1, n+1))], skip=10, nLevels=20, repeat=False, interval=75)
+animate_contour_plot([inter(mesh.xy, mesh.cells, T.data).reshape((n+1, n+1))], skip=10, nLevels=20, repeat=False, interval=75, nN=n, diff=diffusivity, adj=adj)
 
 # magU = np.sqrt(Ux.data**2 + Uy.data**2)
 # print magU.shape, n*n, Ux.data.shape

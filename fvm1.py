@@ -127,7 +127,6 @@ def div(phi, field, matrixGeneratorFunction = fvMatrix):                  # phi 
         phiEdge = phi.data[i]                                # pobiera wartosci predkosci z macierzy phi[dla elementu i]
         #!!!!!!!!!!!!!!!!!!!!!!!!!!!! Wiersz mowi ktora komorka kolumna co i skad wlata wylata  (strumien o jakiejs temp)   !!!!!!!!!!!!!!!!!!!!!!!!!!
 
-        # Upiwnd
         if s > -1:
             if phiEdge > 0:                              # od wlasiciela do sasiada
                 D[w, w] += phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
@@ -136,7 +135,7 @@ def div(phi, field, matrixGeneratorFunction = fvMatrix):                  # phi 
                 D[s, s] -= phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [od sasiada , z temp sasiada]
                 D[w, s] += phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [do wl , temp sasiada]
 
-        #Central
+
         # if k[3] > -1:
         #         D[w, w] -= phiEdge * edgeLen / 2
         #         D[w, s] -= phiEdge * edgeLen / 2
@@ -177,11 +176,17 @@ def eInt_implicit(mesh, matrixGen = lambda dims : np.zeros(shape=dims)):        
     return res
 
 
-def adjustPhi(phiEdgeField):
+def adjustPhi(phiEdgeField, mesh):
     import numpy as np
     P = eInt_implicit(phiEdgeField.mesh)
+    index = []
+    for i, k in enumerate(mesh.list_kr):
+        if k[3] != -1:
+            index.append(i)
+    P = P[:, index]
+
     M = P.dot(P.T)
-    F = P.dot(phiEdgeField.data)
+    F = P.dot(phiEdgeField.data[index])
 
     from scipy.sparse import csr_matrix
     from scipy.sparse.linalg import cg
@@ -191,7 +196,8 @@ def adjustPhi(phiEdgeField):
     Lambda = cg(M, F)[0]
 
     dPhi = - P.T.dot(Lambda)
-    phiEdgeField.data += dPhi
+    phiEdgeField.data[index] += dPhi
+    return 1
 
 
 def WB_dir_T1(lista_kr, Td, wsp_wezl, macierz_K_e, rhs):
@@ -288,7 +294,7 @@ def draw_edges(wsp_wezl, lista_kr):
     # plt.show()
 
 
-def animate_contour_plot(framesDatas, sizeX=(0, 1), sizeY=(0, 1), dataRange=None, nLevels=10, skip=1, repeat=False, interval=5, diff=1., dt=1., nN=1., Tempa=1.):
+def animate_contour_plot(framesDatas, sizeX=(0, 1), sizeY=(0, 1), dataRange=None, nLevels=10, skip=1, repeat=False, interval=5, diff=1., dt=1., nN=1., Tempa=-0., adj=0.):
     """
     Function which make animation from set of 2D data on cartesian grid
     :param framesDatas: List of 2D numpy.arrays containing nodal values
@@ -326,7 +332,8 @@ def animate_contour_plot(framesDatas, sizeX=(0, 1), sizeY=(0, 1), dataRange=None
     Ba = str(dt)
     Ca = str(nN)
     Ta = str(Tempa)
-    Aa = "diff: " + Aa + "  dt: "+ Ba + "  n: " + Ca
+    adj = str(adj)
+    Aa = "diff: " + Aa + "   dt: "+ Ba + "   n: " + Ca + "   AdjPhi: " + adj
     print Aa
     cbar.ax.set_ylabel(Aa)
 

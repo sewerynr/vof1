@@ -5,22 +5,24 @@ from fvm1 import *
 einterp = EdgeField.interp
 
 
+adj = 0
+
 DlPrzX = 1.
 DlPrzY = 1.
 
-n = 40
+n = 80
 
 dx = DlPrzX/n
 dy = DlPrzY/n
 
-dt = 0.0001                                                      # CFL u*dt/dx <= 1   => dt = dx/u
+dt = 0.0002                                                      # CFL u*dt/dx <= 1   => dt = dx/u
 tp = 0
-tk = 1
+tk = 10
 
 nt = (tk - tp)/dt
 
 x0, y0, dl = (0, 0, 0)
-diffusivity = 0.001
+diffusivity = 0.01
 
 node_c, cells, bound = siatka_regularna_prost(n, dx, dy, x0, y0)
 
@@ -51,10 +53,10 @@ np.set_printoptions(precision=6)
 
 Ux, Uy = generate_u(mesh, quadratic_velocity)                   # stworz w srodkach komorek
 
-# Ux.setBoundaryCondition(Dirichlet(mesh, 3, 1))
-# Ux.setBoundaryCondition(Dirichlet(mesh, 1, 1))
-# Ux.setBoundaryCondition(Dirichlet(mesh, 0, 1))
-# Ux.setBoundaryCondition(Dirichlet(mesh, 2, 1))
+Ux.setBoundaryCondition(Dirichlet(mesh, 3, 0))
+Ux.setBoundaryCondition(Dirichlet(mesh, 1, 0))
+Ux.setBoundaryCondition(Dirichlet(mesh, 0, 0))
+Ux.setBoundaryCondition(Dirichlet(mesh, 2, 0))
 
 
 edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))              # przenies za pomoca .interp do krawedzi
@@ -70,7 +72,7 @@ print mesh.list_kr
 #    #!!!!!!!!!!! blad pola predkosci - zrodlowosc !!!!!!!!!!!!
 # animate_contour_plot([inter(mesh.xy, mesh.cells, eInt(phi)).reshape((n+1, n+1))], skip=10, repeat=False, interval=75)
 
-adjustPhi(phi)               #pobiera i pracuje i zwraca phi zmodyfikowne
+adj = adjustPhi(phi, mesh)               #pobiera i pracuje i zwraca phi zmodyfikowne
 
 # animate_contour_plot([inter(mesh.xy, mesh.cells, eInt(phi)).reshape((n+1, n+1))], skip=10, repeat=False, interval=75)
 # plt.show()
@@ -80,10 +82,10 @@ Md, Fd = laplace(diffusivity, T)
 Mc, Fc = div(phi, T)
 
 # pkt1 = n/2 + n*n/2                       # pkt srodek
-# pkt2 = (n-1)/2 + n*18                         # srodek 4 wiersze od spodu
+# pkt2 = (n-1)/2 + n*6                         # srodek 4 wiersze od spodu
 # pkt3 = n/2 + n*(n-5)                     # srodek 4 wiersze od gory
 # Fd[pkt1] += -1
-# Fd[pkt2] += -1
+# Fd[pkt2] += -0.02
 # Fd[pkt3] += -200
 
 Mass = fvMatrix.diagonal(mesh, mesh.cells_areas / dt)
@@ -117,16 +119,18 @@ for iter in range(int(nt)):
     if licznik == step:
         Results.append(T.data.reshape((n, n)))
         licznik = 0
+        step += 10 + 1
     print "pozostalo: ", int(nt - iter)
 
-anim = animate_contour_plot(Results, skip=2, repeat=False, interval=75, nLevels=20, dataRange=[0., 3], nN=n, diff=diffusivity,dt=dt )
-
+anim = animate_contour_plot(Results, skip=2, repeat=False, interval=75, nLevels=20, dataRange=[0., 1], nN=n, diff=diffusivity, dt=dt, adj=adj)
+#
 # from interpolacja import inter
-#
-# animate_contour_plot([inter(mesh.xy, mesh.cells, T.data).reshape((n+1, n+1))], skip=10, repeat=False, interval=75, dataRange=[0, 10])
-#
+
 # from matplotlib.pyplot import quiver
 # q = quiver(mesh.cell_centers[:, 0], mesh.cell_centers[:, 1], Ux[:], Uy[:])
+
+
+# animate_contour_plot([inter(mesh.xy, mesh.cells, T.data).reshape((n+1, n+1))], skip=10, repeat=False, interval=75, dataRange=[0, 10])
 #
 # plt.show()
 
