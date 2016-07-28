@@ -176,11 +176,11 @@ def eInt_implicit(mesh, matrixGen = lambda dims : np.zeros(shape=dims)):        
     return res
 
 
-def adjustPhi(phiEdgeField, mesh):
+def adjustPhi(phiEdgeField):
     import numpy as np
     P = eInt_implicit(phiEdgeField.mesh)
     index = []
-    for i, k in enumerate(mesh.list_kr):
+    for i, k in enumerate(phiEdgeField.mesh.list_kr):
         if k[3] != -1:
             index.append(i)
     Pp = P[:, index]

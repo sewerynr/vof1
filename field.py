@@ -99,7 +99,7 @@ class Dirichlet(BoundaryField):                                         # clasa 
                 EqMat[c, c] += phiEdge * edgeLen
             else:                                         # gdy wlatuje
                 Tbrzeg = self.data[i]
-                Rhs[c] -= Tbrzeg * phiEdge * edgeLen
+                Rhs[c] += Tbrzeg * phiEdge * edgeLen
 
 
 class Neuman(BoundaryField):                                        # klasa dla kazdej krawedzi o warunku neuman
@@ -158,10 +158,10 @@ class Neuman(BoundaryField):                                        # klasa dla 
             phiEdge = phi[id_edge]
 
             if phiEdge > 0:                                                     # wylatuje
-                EqMat[c, c] -= phiEdge * edgeLen
+                EqMat[c, c] += phiEdge * edgeLen
             else:                                                               # gdy wlatuje
                 Tbrzeg = self.data[i]                                           # powinno byc z zewnetrznej krawedzi nie istniejacej bo wlatuje z zewnatrz
-                Rhs[c] -= Tbrzeg * phiEdge * edgeLen
+                Rhs[c] += Tbrzeg * phiEdge * edgeLen
                 # nalezy poprawic to powyzej, tak aby z pochodnej i wartosc w srodku sasiedniej
                 # komorki pisac rownanie na wartosc wielkosci wlatujacej do srodka
                 # to powinno doprowadzic do wstawienia czegos do macierzy i czegos do wekt. pr. stron
@@ -390,13 +390,11 @@ def grad(surfField):                     # Green - Gauss
     cellGrad = np.zeros((len(mesh.cells), 2), dtype=float)
 
     for e, (defE, valE) in enumerate(zip(mesh.list_kr, efield.data)):
-        P1 = mesh.xy[defE[0]]
-        P2 = mesh.xy[defE[1]]
-        dP = P2 - P1
-        cellGrad[defE[2], :] += [-valE * dP[1], valE * dP[0]]
+
+        cellGrad[defE[2], :] += mesh.Se[e]*valE
 
         if defE[3] >= 0:
-            cellGrad[defE[3], :] += [valE * dP[1], -valE * dP[0]]
+            cellGrad[defE[3], :] -= mesh.Se[e]*valE
 
     cellGrad[:, 0] = cellGrad[:, 0] / mesh.cells_areas
     cellGrad[:, 1] = cellGrad[:, 1] / mesh.cells_areas
@@ -410,13 +408,13 @@ def edgeDiv(edgeField):
 
     for e, eDef in enumerate(mesh.list_kr):
         ev = mesh.Se[e]
-        # dS = np.sqrt(ev.dot(ev))
+        dS = np.sqrt(ev.dot(ev))
         val = edgeField.data[e]
 
-        ret[eDef[2]] += val#*dS
+        ret[eDef[2]] += val*dS
 
-        if eDef[3] >= 0:
-            ret[eDef[3]] -= val#*dS
+        if eDef[3] > -1:
+            ret[eDef[3]] -= val*dS
 
     return ret
 

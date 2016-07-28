@@ -8,7 +8,7 @@ from interpolacja import *
 
 DlPrzX = 1.; DlPrzY = 1.
 
-n = 50                                                    # ilosc podzialow
+n = 60                                                    # ilosc podzialow
 
 dx = DlPrzX/n
 dy = DlPrzY/n
@@ -36,7 +36,7 @@ Ux = SurfField(mesh, Dirichlet)                                       # tworzy o
 Uy = SurfField(mesh, Dirichlet)
 p = SurfField(mesh, Neuman)
 
-Ux.setBoundaryCondition(Dirichlet(mesh, 2, 1))
+Ux.setBoundaryCondition(Dirichlet(mesh, 2, 1.))
 
 
 np.set_printoptions(precision=3)
@@ -57,7 +57,7 @@ from scipy.sparse.linalg.isolve.iterative import bicgstab
 
 gradP = grad(p)
 
-for i in range(5):
+for i in range(100):
     print "iter", i
 
     edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))  # pole wektorowe predkosci [Ux, Uy] wyinterpolowanych wartosci na krawedzie (ze sr komurek  EdgeField.interp)
@@ -66,39 +66,60 @@ for i in range(5):
     Mxc, Fxc = div(phi, Ux)  # ukladanie macierzy i wektora prawych stron, dostaje D i Rhs z div
     Myc, Fyc = div(phi, Uy)
 
-    momX_M = Mxc + Mxd * viscosity
-    momY_M = Myc + Myd * viscosity
+    momX_M = Mxc - Mxd * viscosity
+    momY_M = Myc - Myd * viscosity
 
-    momX_F = Fxc - Fxd * viscosity - gradP[:, 0]*mesh.cells_areas
-    momY_F = Fyd * viscosity - gradP[:, 1]*mesh.cells_areas - Fyc
+    momX_F = -(Fxc - Fxd * viscosity) - gradP[:, 0]*mesh.cells_areas
+    momY_F = -(Fyc - Fyd * viscosity) - gradP[:, 1]*mesh.cells_areas
 
-    # momX_M.relax(0.3)
-    # momY_M.relax(0.3)
+    # momX_M = Mxd * (-viscosity)
+    # momY_M = Myd * (-viscosity)
+    #
+    # momX_F = Fxd * viscosity - gradP[:, 0]*mesh.cells_areas
+    # momY_F = Fyd * viscosity - gradP[:, 1]*mesh.cells_areas
 
 
-    Ux.data = bicgstab(A=momX_M.sparse, b=momX_F, x0=Ux.data)[0]
-    Uy.data = bicgstab(A=momY_M.sparse, b=momY_F, x0=Uy.data)[0]
+    momX_M.relax(0.7)
+    momY_M.relax(0.7)
 
-    # A = np.array(momX_M.diag)
+    xSol = bicgstab(A=momX_M.sparse, b=momX_F, x0=Ux.data)[0]
+    ySol = bicgstab(A=momY_M.sparse, b=momY_F, x0=Uy.data)[0]
+
+    Ux.setValues(xSol)
+    Uy.setValues(ySol)
+    # Ux.setValues(0.3*Ux.data + 0.7*xSol)
+    # Uy.setValues(0.3*Uy.data + 0.7*ySol)
+
+    A = np.array(momX_M.diag)
+
+    Hx = - momX_M.offdiagmul(Ux.data)
+    Hy = - momY_M.offdiagmul(Uy.data)
+
+    # tmpX = Ux.data
+    # tmpY = Uy.data
+
+    Ux.setValues(Hx / A)
+    Uy.setValues(Hy / A)
+
+    edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))  # pole wektorowe predkosci [Ux, Uy] wyinterpolowanych wartosci na krawedzie (ze sr komurek  EdgeField.interp)
+    phi = edgeU.dot(mesh.normals)  # phi = v n A  gdzie An tu rowne jest dl_krawedzi obruconej o 90 stopni
     #
-    # Hx = - momX_M.offdiagmul(Ux.data)
-    # Hy = - momY_M.offdiagmul(Uy.data)
-    #
-    # Ux.data = Hx / A
-    # Uy.data = Hy / A
-    #
-    # edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))  # pole wektorowe predkosci [Ux, Uy] wyinterpolowanych wartosci na krawedzie (ze sr komurek  EdgeField.interp)
-    # phi = edgeU.dot(mesh.normals)  # phi = v n A  gdzie An tu rowne jest dl_krawedzi obruconej o 90 stopni
-    #
-    # Mpd, Fpd = laplace(1./A, p)
-    # Fpd = Fpd + edgeDiv(phi)
-    #
-    # pres = bicgstab(A=Mpd.sparse, b=Fpd, x0=p.data)[0]
-    # p.setValues( p.data * 0.7 + 0.3 * pres )
-    #
-    # gradP = grad(p)
-    # Ux.data = Ux.data - gradP[:,0]/A
-    # Uy.data = Uy.data - gradP[:,1]/A
+    Mpd, Fpd = laplace(1./A, p)
+    Fpd = Fpd + edgeDiv(phi)
+
+    pres = bicgstab(A=Mpd.sparse, b=Fpd, x0=p.data)[0]
+    p.setValues( p.data * 0.7 + 0.3 * pres )
+    # p.setValues(pres)
+
+    gradP = grad(p)
+
+    Ux.setValues(Ux.data - gradP[:, 0]/A)
+    Uy.setValues(Uy.data - gradP[:, 1]/A)
+
+    # Ux.data = tmpX
+    # Uy.data = tmpY
+
+
 
 
 
@@ -108,14 +129,22 @@ for i in range(5):
 #
 #
 
-# animate_contour_plot([Ux.data.reshape((n,n))])
+animate_contour_plot([Ux.data.reshape((n,n))])
+plt.title("Ux")
 
-Umag = np.sqrt(np.multiply(Ux.data, Ux.data) + np.multiply(Uy.data, Uy.data))
+animate_contour_plot([Uy.data.reshape((n,n))])
+plt.title("Uy")
 
-animate_contour_plot([inter(mesh.xy, mesh.cells, Umag).reshape((n+1,n+1))], skip=10, repeat=False, interval=75)
-plt.show()
-# animate_contour_plot([p.data.reshape((n,n))])
+# Umag = np.sqrt(np.multiply(Ux.data, Ux.data) + np.multiply(Uy.data, Uy.data))
+# animate_contour_plot([inter(mesh.xy, mesh.cells, Umag).reshape((n+1,n+1))], skip=1, repeat=False, interval=75)
+# plt.title("magU")
 # plt.show()
+
+
+animate_contour_plot([p.data.reshape((n,n))])
+plt.title("p")
+plt.show()
+
 # animate_contour_plot([Uy.data.reshape((n,n))], dataRange=[0,1])
 # plt.show()
 #
