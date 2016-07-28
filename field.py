@@ -85,7 +85,7 @@ class Dirichlet(BoundaryField):                                         # clasa 
             a = edgeFieldCoeff.data[id_edge] * np.dot(CK, Snorm) / np.dot(CK, CK)
 
             EqMat[c, c] += - a
-            Rhs[c] -= self.data[i] * a                 # wartosc na brzegu przemnozona przez wspolczynnik. -= bo przerzucamy do wekt. prawych stron
+            Rhs[c] += self.data[i] * a                 # wartosc na brzegu przemnozona przez wspolczynnik. -= bo przerzucamy do wekt. prawych stron
 
 
     def insertConvectiveFlux(self, EqMat, Rhs, phi):
@@ -96,10 +96,10 @@ class Dirichlet(BoundaryField):                                         # clasa 
             edgeLen = self.mesh.eLengths[id_edge]
             phiEdge = phi[id_edge]
             if phiEdge > 0:                               # gdy wylatuje
-                EqMat[c, c] -= phiEdge * edgeLen
+                EqMat[c, c] += phiEdge * edgeLen
             else:                                         # gdy wlatuje
                 Tbrzeg = self.data[i]
-                Rhs[c] += Tbrzeg * phiEdge * edgeLen
+                Rhs[c] -= Tbrzeg * phiEdge * edgeLen
 
 
 class Neuman(BoundaryField):                                        # klasa dla kazdej krawedzi o warunku neuman
@@ -280,7 +280,7 @@ class EdgeField:
 
 
 def quadratic_velocity(pc, tanPc, r):
-    U = 10.
+    U = 1.
     if r <= 0.33:
         return tanPc*U*(-(6*r-1.)**2+1.)
     else:
@@ -312,7 +312,7 @@ def generate_phi_1(mesh):
 
 
 def constant_velocity(pc, tanPc, r):
-    return np.array([10, 0.])
+    return np.array([1., 0.])
 
 def generate_u(mesh, velcity_function):
     Ux = SurfField(mesh, Dirichlet)
@@ -370,7 +370,7 @@ def generate_phi_r_2(mesh):
 
             v = vwl*(dlf/dl) + vsas*(dlc/dl)                      # przypadek szczegolny
             vals_return[i] = v.dot(mesh.edge_normal(i))           # rzut na normalna do konkretnej krawedzi
-            print vals_return[i]
+            # print vals_return[i]
         else:                                                     # gdy krawedz brzegowa
             #vals_return[i] = 0.
             pass                                                  # vals_return[i] = 0. nie trzeba bo zainicjalizowana zerami

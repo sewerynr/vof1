@@ -10,19 +10,19 @@ adj = 0
 DlPrzX = 1.
 DlPrzY = 1.
 
-n = 80
+n = 40
 
 dx = DlPrzX/n
 dy = DlPrzY/n
 
-dt = 0.0002                                                      # CFL u*dt/dx <= 1   => dt = dx/u
+dt = 0.002                                                      # CFL u*dt/dx <= 1   => dt = dx/u
 tp = 0
-tk = 10
+tk = 220
 
 nt = (tk - tp)/dt
 
 x0, y0, dl = (0, 0, 0)
-diffusivity = 0.01
+diffusivity = 0.0001
 
 node_c, cells, bound = siatka_regularna_prost(n, dx, dy, x0, y0)
 
@@ -41,7 +41,7 @@ T = SurfField(mesh, Dirichlet)                                    # temp w srodk
 # T.setBoundaryCondition(Dirichlet(mesh, 1, TdirWB))
 
 #T.setBoundaryCondition(Neuman(mesh, 2, 0))
-# T.setBoundaryCondition(Dirichlet(mesh, 2, 1))
+T.setBoundaryCondition(Dirichlet(mesh, 2, 1))
 
 
 # T.setBoundaryCondition(Neuman(mesh, 3, 0))
@@ -53,17 +53,17 @@ np.set_printoptions(precision=6)
 
 Ux, Uy = generate_u(mesh, quadratic_velocity)                   # stworz w srodkach komorek
 
-Ux.setBoundaryCondition(Dirichlet(mesh, 3, 0))
-Ux.setBoundaryCondition(Dirichlet(mesh, 1, 0))
-Ux.setBoundaryCondition(Dirichlet(mesh, 0, 0))
-Ux.setBoundaryCondition(Dirichlet(mesh, 2, 0))
+# Ux.setBoundaryCondition(Dirichlet(mesh, 3, 1))
+# Ux.setBoundaryCondition(Dirichlet(mesh, 1, 1))
+# Ux.setBoundaryCondition(Dirichlet(mesh, 0, 1))
+# Ux.setBoundaryCondition(Dirichlet(mesh, 2, 1))
 
 
 edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))              # przenies za pomoca .interp do krawedzi
 phi = edgeU.dot(mesh.normals)                                   # oblicz UnaKrawedzi * normalnaDoKrawedzi = (skalar)
 
-print phi.data
-print mesh.list_kr
+# print phi.data
+# print mesh.list_kr
 
 # phi = EdgeField(mesh)
 # phi.data = np.multiply(generate_phi_1(mesh), mesh.eLengths)
@@ -82,21 +82,21 @@ Md, Fd = laplace(diffusivity, T)
 Mc, Fc = div(phi, T)
 
 # pkt1 = n/2 + n*n/2                       # pkt srodek
-# pkt2 = (n-1)/2 + n*6                         # srodek 4 wiersze od spodu
+# pkt2 = (n-1)/2 + n*6                     # srodek 4 wiersze od spodu
 # pkt3 = n/2 + n*(n-5)                     # srodek 4 wiersze od gory
-# Fd[pkt1] += -1
-# Fd[pkt2] += -0.02
+# Fd[pkt1] += 0.1
+# Fd[pkt2] += 0.02
 # Fd[pkt3] += -200
 
 Mass = fvMatrix.diagonal(mesh, mesh.cells_areas / dt)
 
 M = Mass + Mc - Md
-F = Fc - Fd
+F = Fd - Fc
 
 # wypelnij polowe temperatura
-for i, point in enumerate(T.data):
-    if i < (n**2)/2:
-        T.data[i] = 1
+# for i, point in enumerate(T.data):
+#     if i < (n**2)/2:
+#         T.data[i] = 1
 
 Results = list()
 Tn = T.data.reshape((n, n))
@@ -122,7 +122,7 @@ for iter in range(int(nt)):
         step += 10 + 1
     print "pozostalo: ", int(nt - iter)
 
-anim = animate_contour_plot(Results, skip=2, repeat=False, interval=75, nLevels=20, dataRange=[0., 1], nN=n, diff=diffusivity, dt=dt, adj=adj)
+anim = animate_contour_plot(Results, skip=2, repeat=False, interval=75, nLevels=18, dataRange=[0., 1], nN=n, diff=diffusivity, dt=dt, adj=adj)
 #
 # from interpolacja import inter
 

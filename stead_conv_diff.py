@@ -10,7 +10,7 @@ n = 40
 dx = DlPrzX/n
 dy = DlPrzY/n
 x0, y0, dl = (0, 0, 0)
-diffusivity = 0.001
+diffusivity = 0.1
 
 node_c, cells, bound = siatka_regularna_prost(n, dx, dy, x0, y0)
 mesh = Mesh(node_c, cells, bound)
@@ -23,12 +23,12 @@ T.setBoundaryCondition(Dirichlet(mesh, 2, 1))
 # T.setBoundaryCondition(Neuman(mesh, 3, 0))
 
 
-Ux, Uy = generate_u(mesh, quadratic_velocity)
+Ux, Uy = generate_u(mesh, constant_velocity)
 
-Ux.setBoundaryCondition(Dirichlet(mesh, 0, 0))
-Ux.setBoundaryCondition(Dirichlet(mesh, 1, 0))
-Ux.setBoundaryCondition(Dirichlet(mesh, 2, 0))
-Ux.setBoundaryCondition(Dirichlet(mesh, 3, 0))
+Ux.setBoundaryCondition(Dirichlet(mesh, 0, 1))
+Ux.setBoundaryCondition(Dirichlet(mesh, 1, 1))
+Ux.setBoundaryCondition(Dirichlet(mesh, 2, 1))
+Ux.setBoundaryCondition(Dirichlet(mesh, 3, 1))
 
 edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))
 # print "einterpUx",einterp(Ux).data
@@ -39,7 +39,7 @@ phi = edgeU.dot(mesh.normals)
 # phi = EdgeField(mesh)
 # phi.data = generate_phi_r(mesh, constant_velocity) #np.multiply(, mesh.eLengths)
 
-adjustPhi(phi, mesh)
+# adj = adjustPhi(phi, mesh)
 
 Md, Fd = laplace(diffusivity, T)
 Mc, Fc = div(phi, T)
@@ -47,14 +47,14 @@ Mc, Fc = div(phi, T)
 from scipy.sparse.linalg.isolve.iterative import bicgstab
 
 # pkt1 = n/2 + n*n/2                           # pkt srodek
-# pkt2 = n/2 + n*5                             # srodek 4 wiersze od spodu
+pkt2 = n/2 + n*10                             # srodek 4 wiersze od spodu
 # pkt3 = n/2 + n*(n-5)                         # srodek 4 wiersze od gory
 # Fd[pkt1] += -300
-# Fd[pkt2] += 1
+Fd[pkt2] += 0.00001
 # Fd[pkt3] += -200
 
 M = Mc - Md  #
-F = Fc - Fd  #
+F = Fd - Fc  #
 
 # print "Mc diag", Mc.diag
 # print "Mc data",Mc.data
@@ -82,7 +82,7 @@ T.setValues(res)
 print ">>>> info: ", info
 
 # animate_contour_plot([T.data.reshape(n, n)], skip=10, repeat=False, interval=75)
-animate_contour_plot([inter(mesh.xy, mesh.cells, T.data).reshape((n+1, n+1))], skip=10, nLevels=20, repeat=False, interval=75, nN=n, diff=diffusivity, adj=adj)
+animate_contour_plot([inter(mesh.xy, mesh.cells, T.data).reshape((n+1, n+1))], skip=10, nLevels=16, repeat=False, interval=75, nN=n, diff=diffusivity, adj=adj)
 
 # magU = np.sqrt(Ux.data**2 + Uy.data**2)
 # print magU.shape, n*n, Ux.data.shape

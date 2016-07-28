@@ -183,10 +183,10 @@ def adjustPhi(phiEdgeField, mesh):
     for i, k in enumerate(mesh.list_kr):
         if k[3] != -1:
             index.append(i)
-    P = P[:, index]
+    Pp = P[:, index]
 
-    M = P.dot(P.T)
-    F = P.dot(phiEdgeField.data[index])
+    M = Pp.dot(Pp.T)
+    F = P.dot(phiEdgeField.data)
 
     from scipy.sparse import csr_matrix
     from scipy.sparse.linalg import cg
@@ -195,7 +195,7 @@ def adjustPhi(phiEdgeField, mesh):
 
     Lambda = cg(M, F)[0]
 
-    dPhi = - P.T.dot(Lambda)
+    dPhi = - Pp.T.dot(Lambda)
     phiEdgeField.data[index] += dPhi
     return 1
 
