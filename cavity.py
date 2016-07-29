@@ -8,7 +8,7 @@ from interpolacja import *
 
 DlPrzX = 1.; DlPrzY = 1.
 
-n = 60                                                    # ilosc podzialow
+n = 50                                                    # ilosc podzialow
 
 dx = DlPrzX/n
 dy = DlPrzY/n
@@ -21,7 +21,7 @@ nt = (tk - tp)/dt
 
 x0, y0, dl = (0, 0, 0)
 
-viscosity = 0.01
+viscosity = 0.1
 
 import time
 
@@ -54,14 +54,33 @@ Myd, Fyd = laplace(viscosity, Uy)
 
 from scipy.sparse.linalg.isolve.iterative import bicgstab
 
+edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))  # pole wektorowe predkosci [Ux, Uy] wyinterpolowanych wartosci na krawedzie (ze sr komurek  EdgeField.interp)
+phi = edgeU.dot(mesh.normals)  # phi = v n A  gdzie An tu rowne jest dl_krawedzi obruconej o 90 stopni
+
+
+
+# Correct phi to keep proper mass fluxes
+P, internIndex = adjustPhi_eqSys(phi)
+Pp = P[:, internIndex]
+from scipy.sparse import csr_matrix
+Mphi = Pp.dot(Pp.T)
+Mphi = csr_matrix(Mphi)
+
+def adjustPhiFlux():
+    from scipy.sparse.linalg import cg
+    Fphi = P.dot(phi.data)
+    Lambda = cg(Mphi, Fphi)[0]
+    dPhi = - Pp.T.dot(Lambda)
+    phi.data[internIndex] += dPhi
+
+
+adjustPhiFlux()
 
 gradP = grad(p)
 
-for i in range(100):
+for i in range(1100):
     print "iter", i
 
-    edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))  # pole wektorowe predkosci [Ux, Uy] wyinterpolowanych wartosci na krawedzie (ze sr komurek  EdgeField.interp)
-    phi = edgeU.dot(mesh.normals)  # phi = v n A  gdzie An tu rowne jest dl_krawedzi obruconej o 90 stopni
 
     Mxc, Fxc = div(phi, Ux)  # ukladanie macierzy i wektora prawych stron, dostaje D i Rhs z div
     Myc, Fyc = div(phi, Uy)
@@ -92,7 +111,7 @@ for i in range(100):
 
     A = np.array(momX_M.diag)
 
-    Hx = - momX_M.offdiagmul(Ux.data)
+    Hx = - momX_M.offdiagmul(Ux.data)           # offdiagnal to sąsiedzi
     Hy = - momY_M.offdiagmul(Uy.data)
 
     # tmpX = Ux.data
@@ -103,9 +122,9 @@ for i in range(100):
 
     edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))  # pole wektorowe predkosci [Ux, Uy] wyinterpolowanych wartosci na krawedzie (ze sr komurek  EdgeField.interp)
     phi = edgeU.dot(mesh.normals)  # phi = v n A  gdzie An tu rowne jest dl_krawedzi obruconej o 90 stopni
-    #
+
     Mpd, Fpd = laplace(1./A, p)
-    Fpd = Fpd + edgeDiv(phi)
+    Fpd = -Fpd + edgeDiv(phi)
 
     pres = bicgstab(A=Mpd.sparse, b=Fpd, x0=p.data)[0]
     p.setValues( p.data * 0.7 + 0.3 * pres )
@@ -115,6 +134,15 @@ for i in range(100):
 
     Ux.setValues(Ux.data - gradP[:, 0]/A)
     Uy.setValues(Uy.data - gradP[:, 1]/A)
+
+    edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))  # pole wektorowe predkosci [Ux, Uy] wyinterpolowanych wartosci na krawedzie (ze sr komurek  EdgeField.interp)
+    phi = edgeU.dot(mesh.normals)  # phi = v n A  gdzie An tu rowne jest dl_krawedzi obruconej o 90 stopni
+
+    # spr balas
+
+    
+
+    adjustPhiFlux()
 
     # Ux.data = tmpX
     # Uy.data = tmpY
@@ -135,15 +163,18 @@ plt.title("Ux")
 animate_contour_plot([Uy.data.reshape((n,n))])
 plt.title("Uy")
 
-# Umag = np.sqrt(np.multiply(Ux.data, Ux.data) + np.multiply(Uy.data, Uy.data))
-# animate_contour_plot([inter(mesh.xy, mesh.cells, Umag).reshape((n+1,n+1))], skip=1, repeat=False, interval=75)
-# plt.title("magU")
-# plt.show()
-
-
 animate_contour_plot([p.data.reshape((n,n))])
 plt.title("p")
+
+Umag = np.sqrt(np.multiply(Ux.data, Ux.data) + np.multiply(Uy.data, Uy.data))
+animate_contour_plot([inter(mesh.xy, mesh.cells, Umag).reshape((n+1,n+1))], skip=1, repeat=False, interval=75, diff=diffusivity, dt=dt, adj=0)
+#
+from matplotlib.pyplot import quiver
+q = quiver(mesh.cell_centers[:, 0], mesh.cell_centers[:, 1], Ux[:], Uy[:])
+plt.title("magU")
 plt.show()
+
+
 
 # animate_contour_plot([Uy.data.reshape((n,n))], dataRange=[0,1])
 # plt.show()

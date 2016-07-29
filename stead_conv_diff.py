@@ -23,7 +23,7 @@ T.setBoundaryCondition(Dirichlet(mesh, 2, 1))
 # T.setBoundaryCondition(Neuman(mesh, 3, 0))
 
 
-Ux, Uy = generate_u(mesh, constant_velocity)
+Ux, Uy = generate_u(mesh, constant_velocity)    # generuje 2 pola pr w sr komorek
 
 Ux.setBoundaryCondition(Dirichlet(mesh, 0, 1))
 Ux.setBoundaryCondition(Dirichlet(mesh, 1, 1))

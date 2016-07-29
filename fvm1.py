@@ -176,28 +176,35 @@ def eInt_implicit(mesh, matrixGen = lambda dims : np.zeros(shape=dims)):        
     return res
 
 
-def adjustPhi(phiEdgeField):
-    import numpy as np
+def adjustPhi_eqSys(phiEdgeField):
     P = eInt_implicit(phiEdgeField.mesh)
     index = []
     for i, k in enumerate(phiEdgeField.mesh.list_kr):
         if k[3] != -1:
             index.append(i)
-    Pp = P[:, index]
+    return P, index
 
-    M = Pp.dot(Pp.T)
+def adjustPhi(phiEdgeField):
+
+    P, internIndex = adjustPhi_eqSys(phiEdgeField)
+    Pp = P[:, internIndex]
+
     F = P.dot(phiEdgeField.data)
 
     from scipy.sparse import csr_matrix
     from scipy.sparse.linalg import cg
 
+    M = Pp.dot(Pp.T)
     M = csr_matrix(M)
 
     Lambda = cg(M, F)[0]
 
     dPhi = - Pp.T.dot(Lambda)
-    phiEdgeField.data[index] += dPhi
+    phiEdgeField.data[internIndex] += dPhi
     return 1
+
+
+
 
 
 def WB_dir_T1(lista_kr, Td, wsp_wezl, macierz_K_e, rhs):

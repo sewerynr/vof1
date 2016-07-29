@@ -16,25 +16,15 @@ class Mesh:
         self.xy = nodes
         self.cells = cells
         self.n = cells.shape[0]                         # shape returns the dimension of array. shape[0] daje ilosc wierszy shape[1] kolumn
-
-        # self.cell_centers = cell_centers
-        # self.__wsp_dl__ = None  # tez do (*****)
-
         self.cells_areas = self.__cell_area__()
-
         self.list_kr = self.__lista_krawedzi__()
-
         self.list_kr = self.__wlasciciel_sasiad__(self.list_kr)
-
         self.edgeCenters = self.__edgeCenters__()
-
         self.boundaries_points = boundaries
         self.boundaries = self.__bound_to_edge_bound__(boundaries)
         self.Se = self.__Se__()
         self.normals, self.eLengths = self.__normals_and_edge_lengths__()
         self.cell_centers = self.__cell_center__()
-
-        # self.boundaries = boundaries
 
     #gdy chcemy wywolac prywatna funkcje ale dopiero gdy ktos o nia zapyta (dostanie wtedy macierz) (*****)
     # @property
@@ -45,13 +35,11 @@ class Mesh:
 
     def __Se__(self):
         se = np.array([[0.] * 2] * len(self.list_kr))
-        #print len(self.list_kr)
         for i, edge in enumerate(self.list_kr):
             p1 = self.xy[edge[0], :]     # edge[0] mowi ktory wiesz czyli ktory pkt. : to wez x, y
             p2 = self.xy[edge[1], :]
             x, y = self.wsp_wekt_z_wsp(p2, p1)
             se[i] = [-y, x]
-        #print se
         return se
 
     def __normals_and_edge_lengths__(self):
@@ -59,7 +47,6 @@ class Mesh:
         return np.array([self.Se[:, 0] / magSqrt, self.Se[:, 1] / magSqrt]).T, magSqrt
 
     def __cell_center__(self):
-
         cc = np.array([[0.] * 2] * (self.n))  # cell centers _ srodki komorek
         for i, cell in enumerate(self.cells):
             c1, c2, c3, c4 = self.cells[i]
@@ -68,7 +55,6 @@ class Mesh:
 
             cc[i][1] = (self.xy[c1][1] + self.xy[c2][1] + self.xy[c3][1] + self.xy[c4][1]) / len(self.cells[i])  # srodki komomorek pobiera numery wezlow z cells i wczytuje wsp z wsp_wezl
         return cc
-
 
 
     def __cell_area__(self):
@@ -80,9 +66,7 @@ class Mesh:
                 punkty.append(pointk_xy[0])  # 0 2 4 6... wsp X
                 punkty.append(pointk_xy[1])  # 1 3 5 7... wsp y
             area[i] = self.area_from_coordinates(punkty)
-        # print area
         return area
-
 
 
     def area_from_coordinates(self, coord_list):
@@ -93,13 +77,11 @@ class Mesh:
         return area
 
 
-
     # zapisuje 4 war brzegowe jako liste z numerami krawedzi
     def __bound_to_edge_bound__(self, boundaries):                      # boundaries zawiera 4 krawedzie z siatki reg prost
         bond_to_edge = np.array( [ [0]*len(b) for b in boundaries ] )
-
         for idBoundry, b in enumerate(boundaries):                      # petla po 4 War Brzeg bo tyle mamy w naszej siatce gdyby wiecej to po wiekszej liczbie elementow
-            for idBEdge, edge_nodes in enumerate(b):                    # petla po konkretnym WB
+            for idBEdge, edge_nodes in enumerate(b):                    # petla po konkretnym WB (jego krawedziach p1----p2)
                 en0 = edge_nodes[0]
                 en1 = edge_nodes[1]
                 for idEdge, edge in enumerate(self.list_kr):            # przelec po wszystkich krawedziach (list_kr) i porownaj z tym co w BC
@@ -107,9 +89,7 @@ class Mesh:
                     e1 = edge[1]
                     if (en0 == e0 and en1 == e1) or (en1 == e0 and en0 == e1):
                         bond_to_edge[idBoundry][idBEdge] = idEdge       # przypisz krawedzi jej numer jesli punky sobie odpowiadaja
-
         return bond_to_edge
-
 
 
     def edge_vector(self, edgeId):
@@ -140,7 +120,6 @@ class Mesh:
         srkY = (y1+y2+y3+y4)/4
         return srkY
 
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! y,-x    to   -y,x
 
     def wektor_norm(self, x, y):
         xn = y

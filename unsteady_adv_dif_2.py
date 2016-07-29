@@ -72,7 +72,7 @@ phi = edgeU.dot(mesh.normals)                                   # oblicz UnaKraw
 #    #!!!!!!!!!!! blad pola predkosci - zrodlowosc !!!!!!!!!!!!
 # animate_contour_plot([inter(mesh.xy, mesh.cells, eInt(phi)).reshape((n+1, n+1))], skip=10, repeat=False, interval=75)
 
-# adj = adjustPhi(phi, mesh)               #pobiera i pracuje i zwraca phi zmodyfikowne
+adj = adjustPhi(phi, mesh)               #pobiera i pracuje i zwraca phi zmodyfikowne
 
 # animate_contour_plot([inter(mesh.xy, mesh.cells, eInt(phi)).reshape((n+1, n+1))], skip=10, repeat=False, interval=75)
 # plt.show()

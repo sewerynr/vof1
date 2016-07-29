@@ -229,7 +229,7 @@ class EdgeField:
         self.mesh = mesh
 
     @staticmethod
-    def interp(surfField):                                              # def interp(self, surfField):   nie statyczna musi byc z self
+    def interp(surfField):                                              # taka: def interp(self, surfField):   nie statyczna musi byc z self
 
         mesh = surfField.mesh
         efield = EdgeField(mesh)
@@ -286,6 +286,9 @@ def quadratic_velocity(pc, tanPc, r):
     else:
         return np.array([0., 0.])
 
+def constant_velocity(pc, tanPc, r):
+    return np.array([1., 0.])
+
 #  odrazu daje normalne skl pr na sciankach
 def generate_phi_r(mesh, velcity_function):           #po krawedziach
     vals = np.zeros(len(mesh.list_kr), dtype=float)
@@ -311,17 +314,14 @@ def generate_phi_1(mesh):
     return vals
 
 
-def constant_velocity(pc, tanPc, r):
-    return np.array([1., 0.])
-
-def generate_u(mesh, velcity_function):
+def generate_u(mesh, velcity_function):         # w srodkach komurek (****) odp. il komurek
     Ux = SurfField(mesh, Dirichlet)
     Uy = SurfField(mesh, Dirichlet)
     # Ux = SurfField(mesh, Neuman)
     # Uy = SurfField(mesh, Neuman)
 
 
-    vals = np.zeros((len(mesh.cell_centers), 2), dtype=float)
+    vals = np.zeros((len(mesh.cell_centers), 2), dtype=float)   # (****)
 
     for c, pc in enumerate(mesh.cell_centers):
         pc = pc - [0.5, 0.5]
@@ -402,7 +402,7 @@ def grad(surfField):                     # Green - Gauss
     return cellGrad
 
 
-def edgeDiv(edgeField):
+def edgeDiv(edgeField):                     # calka obj z dywergencj po krawedziach
     mesh = edgeField.mesh
     ret = np.zeros(len(mesh.cells), dtype=float)
 
