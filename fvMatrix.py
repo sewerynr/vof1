@@ -91,6 +91,26 @@ class fvMatrix:                   # do sparse co na przek, jakie wartosci (data)
 
         return F
 
+    def relax(self, coeff=0.5):
+        for i in range(self.shape[0]):
+            self.data[i] = [d * coeff for d in self.data[i]]
+        self.reset_cache()
+
+    def relax2(self, Rhs, Field, coeff):
+        self.diag = [d / coeff for d in self.diag]
+        for i in range(len(self.diag)):
+            d = self.diag[i]
+            self.diag[i] /= coeff
+            Rhs[i] += (self.diag[i] - d) * Field.data[i]
+            # Rhs[i] /= coeff
+        self.reset_cache()
+
+    def relax3(self, Rhs, Field, coeff):
+        c2 = 1. - coeff
+        for i in range(self.shape[0]):
+            Rhs[i] -= sum([d * c2 * Field[index] for d, index in zip(self.data[i], self.indices[i])])
+            self.data[i] = [d * coeff for d in self.data[i]]
+        self.reset_cache()
 
     def dot(self, X):
         if X.shape[1] is None:

@@ -3,63 +3,90 @@ import matplotlib.pyplot as plt
 from mesh import *
 #from functions import *
 
-def siatka_regularna_prost(n, dx, dy, x0, y0):
-    node_coordinates = np.array([[0.] * 2] * (n + 1) ** 2)
+def siatka_regularna_prost(n, m,  dx, dy, x0, y0):
+    node_coordinates = np.array([[0.] * 2] * (n + 1) * (m + 1))
     for i in range(0, n + 1, 1):
-        for j in range(0, n + 1, 1):
-            index = i * (n + 1) + j
+        for j in range(0, m + 1, 1):
+            index = i * (m + 1) + j
             node_coordinates[index, :] = [x0 + j * dx, y0 + i * dy]
 
-    cells = np.array([[0] * 4] * (n ** 2))          # kazda komurka ma 4 pkt a komorek jest n^2
+    cells = np.array([[0] * 4] * n * m)
+
     for i in range(n):
-        for j in range(n):
-            cid = i * n + j
-            cells[cid, :] = [i * (n + 1) + j, i * (n + 1) + j + 1, (i + 1) * (n + 1) + 1 + j, (i + 1) * (n + 1) + j]       # [wpisuje w wiersz o nr cid, : czyli  w kazda kolumne] odp w miejsce 1,2,3,4
+        for j in range(m):
+            cid = i * m + j
+            cells[cid, :] = [i * (m + 1) + j, i * (m + 1) + j + 1, (i + 1) * (m + 1) + 1 + j, (i + 1) * (m + 1) + j]
+            # [wpisuje w wiersz o nr cid, : czyli  w kazda kolumne] odp w miejsce 1,2,3,4
+    # print "s", cells.shape
+    boundaries_BC = list()
+    mat = list()
+    for i in range(m):
+        mat.append([0, 0])
 
+    boundaries_BC.append(mat)
 
+    mat = list()
+    for i in range(n):
+        mat.append([0, 0])
 
-    boundaries_BC = np.array([[[0]*2]*n]*4)       # jedna kolumna i 4 wiersze bo cztery brzegi (w kolumnie nowa lista tyle wierszy ile krawedzi i tyle kolumn ile pkt tworzacych krawedz
-    temp = np.array([[[0] * 1] * (n+1)])
+    boundaries_BC.append(mat)
+
+    mat = list()
+    for i in range(m):
+        mat.append([0, 0])
+
+    boundaries_BC.append(mat)
+
+    mat = list()
+    for i in range(n):
+        mat.append([0, 0])
+
+    boundaries_BC.append(mat)
+    # print boundaries_BC
+
+    temp = np.array([[[0] * 1] * (max(m, n)+1)])
 
     # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  ??????????????????????????  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+    # boundaries_BC[2][[1][0]] = [100, 78]
     licznik = 0
     for id, wspw in enumerate(node_coordinates):
         if wspw[1] == 0:
             temp[0, licznik] = id
-            licznik = licznik + 1
+            licznik += 1
+
     for i in range(0, licznik - 1, 1):
-        boundaries_BC[0, i, 0] = temp[0, i]
-        boundaries_BC[0, i, 1] = temp[0, i + 1]
+        boundaries_BC[0][i][0] = int(temp[0, i])
+        boundaries_BC[0][i][1] = int(temp[0, i + 1])
 
     licznik = 0
     for id, wspw in enumerate(node_coordinates):
         if wspw[0] == 1:
             temp[0, licznik] = id
-            licznik = licznik + 1
+            licznik += 1
     for i in range(0, licznik - 1, 1):
-        boundaries_BC[1, i, 0] = temp[0, i]
-        boundaries_BC[1, i, 1] = temp[0, i + 1]
+        boundaries_BC[1][i][0] = int(temp[0, i])
+        boundaries_BC[1][i][1] = int(temp[0, i + 1])
 
     licznik = 0
     for id, wspw in enumerate(node_coordinates):
         if wspw[1] == 1:
             temp[0, licznik] = id
-            licznik = licznik + 1
+            licznik += 1
     for i in range(0, licznik - 1, 1):
-        boundaries_BC[2, i, 0] = temp[0, i]
-        boundaries_BC[2, i, 1] = temp[0, i + 1]
+        boundaries_BC[2][i][0] = int(temp[0, i])
+        boundaries_BC[2][i][1] = int(temp[0, i + 1])
 
     licznik = 0
     for id, wspw in enumerate(node_coordinates):
         if wspw[0] == 0:
             temp[0, licznik] = id
-            licznik = licznik + 1
+            licznik += 1
     for i in range(0, licznik - 1, 1):
-       boundaries_BC[3, i, 0] = temp[0, i]
-       boundaries_BC[3, i, 1] = temp[0, i + 1]
+        boundaries_BC[3][i][0] = int(temp[0, i])
+        boundaries_BC[3][i][1] = int(temp[0, i + 1])
 
-    #print boundaries_BC   # krawedzie przez numery punktow [0 1] [1 2] itd...
+    # print boundaries_BC   # krawedzie przez numery punktow [0 1] [1 2] itd...
 
     return node_coordinates, cells, boundaries_BC
     # Utworzenie komorek na podstawie wezlow (zbior nr wezlow budujacych kom.).
@@ -81,9 +108,7 @@ def laplace(coeff, field, matrixGeneratorFunction = fvMatrix):    # matrixProvid
 
     if not hasattr(coeff, "__iter__"):                  # czy to liczba czy tablica
         coeff = np.ones(len(mesh.cells)) * coeff
-
     coeffField.setValues(np.array(coeff))
-
     edgeCoeff = EdgeField.interp(coeffField)
 
     for i, kraw in enumerate(lista_kra):
@@ -91,19 +116,54 @@ def laplace(coeff, field, matrixGeneratorFunction = fvMatrix):    # matrixProvid
             k1, k2, c, f = kraw
             cC = mesh.cell_centers[c]
             cF = mesh.cell_centers[f]
-
             CF = cF - cC
             Snorm = mesh.Se[i]
             a = edgeCoeff.data[i] * np.dot(CF, Snorm) / np.dot(CF, CF)
-
-            # Wstawiamy wsp. do ukladu rownan
             macierz_K_e[c, c] += - a                         # to co odp wlascicielowi, diagonalny element
             macierz_K_e[c, f] += a                           # to co odp sasiadowi z przeciwnym znakiem, poza diagonala
-            # kazda krawedz tylko raz ale strumien na niej jest bilansowany w dwoch sasiadujacych komorkach, dlatego
-            # takie same wsp (nawet znak, bo kierunek normalnej oraz kierunek od srodka do drugiej sie razem obracaja)
-            # wiec dokladnie te same wspol. ida do rownania o indeksie takim jak sasiad
             macierz_K_e[f, f] += - a    # krawedz wplywa na rownanie sasiada, teraz sasiad jest w centrum komorki
             macierz_K_e[f, c] += a      # a poza diagonala jest wlasciciel
+
+    rhs = np.zeros(n)
+    field.apply_bc_diffusiveFlux(edgeCoeff, macierz_K_e, rhs)
+    return macierz_K_e, rhs
+
+def laplace1(coeff, field, matrixGeneratorFunction=fvMatrix):  # matrixProvider wywoluje konstruktor metody fvMatrix  z polem T lambda funkcja anonimowa
+    n, lista_kra = field.mesh.n, field.mesh.list_kr
+    macierz_K_e = matrixGeneratorFunction(field.mesh)
+    mesh = field.mesh
+
+    from field import EdgeField, SurfField, Neuman
+
+    if not hasattr(coeff, "__iter__") and not isinstance(coeff, EdgeField):  # czy to liczba czy tablica o wym. [len(mesh.cells) x 2]
+        coeff = np.ones((len(mesh.cells), 2), dtype=float) * coeff           # liczba wiec stworz wektor i pomnoz coeff razy wektor jedynek [1,1]
+    elif isinstance(coeff, np.ndarray) and (len(coeff.shape) == 1 or coeff.shape[1] == 1):      # tablica wiec tylko ja obroc
+        coeff = np.array([coeff, coeff]).T
+
+    # another but different if
+    if isinstance(coeff, EdgeField):                # gdy wspolczynniki to pole edgefield ( na kazdej krawedzi inny wsp)
+        edgeCoeff = coeff
+    else:
+        coeffFieldX = SurfField(mesh, bcGenerator=Neuman)
+        coeffFieldY = SurfField(mesh, bcGenerator=Neuman)
+        coeffFieldX.setValues(np.array(coeff[:, 0]))
+        coeffFieldY.setValues(np.array(coeff[:, 1]))
+        edgeCoeff = EdgeField.vector(EdgeField.interp(coeffFieldX), EdgeField.interp(coeffFieldY))
+
+    for i, kraw in enumerate(lista_kra):
+        if kraw[3] > -1:
+            k1, k2, c, f = kraw
+            # cC = mesh.cell_centers[c]
+            # cF = mesh.cell_centers[f]
+
+            CF = mesh.center_to_center_edge[i]
+            Snorm = mesh.Se[i]
+            coeff = edgeCoeff.data[i]
+            a = (coeff * CF).dot(Snorm) / CF.dot(CF)
+            macierz_K_e[c, c] += - a  # to co odp wlascicielowi, diagonalny element
+            macierz_K_e[c, f] += a  # to co odp sasiadowi z przeciwnym znakiem, poza diagonala
+            macierz_K_e[f, f] += - a  # krawedz wplywa na rownanie sasiada, teraz sasiad jest w centrum komorki
+            macierz_K_e[f, c] += a  # a poza diagonala jest wlasciciel
 
     rhs = np.zeros(n)
 
@@ -112,8 +172,7 @@ def laplace(coeff, field, matrixGeneratorFunction = fvMatrix):    # matrixProvid
     return macierz_K_e, rhs
 
 
-
-    #   div to dywergencja, czlon zachowawczy adwekcji
+            #   div to dywergencja, czlon zachowawczy adwekcji
 def div(phi, field, matrixGeneratorFunction = fvMatrix):                  # phi to pole predkosci na scianach skalarne bo przemnozone skalarnie razy wektor normalny (ro * wektor predkosci * wekt normalny) = phi
     n, lista_kra = field.mesh.n, field.mesh.list_kr                      # lista kr: [ 1 0 0 1]  = [pkt1 pkt2 wl sasiad]
     D = matrixGeneratorFunction(field.mesh)
@@ -181,14 +240,13 @@ def adjustPhi_eqSys(phiEdgeField):
     index = []
     for i, k in enumerate(phiEdgeField.mesh.list_kr):
         if k[3] != -1:
-            index.append(i)
+            index.append(i)             # indeksy krawedzi nie brzegowych (nie WB)
     return P, index
 
 def adjustPhi(phiEdgeField):
 
     P, internIndex = adjustPhi_eqSys(phiEdgeField)
-    Pp = P[:, internIndex]
-
+    Pp = P[:, internIndex]      # P bez warunkow brzegowych ich nie chcemy poprawiac na nich ma byc to co zadane
     F = P.dot(phiEdgeField.data)
 
     from scipy.sparse import csr_matrix
@@ -316,13 +374,16 @@ def animate_contour_plot(framesDatas, sizeX=(0, 1), sizeY=(0, 1), dataRange=None
     import matplotlib.pyplot as plt
     from matplotlib import animation
 
-    if len(framesDatas) == 0:
+    if len(framesDatas) == 0:   # frames data to T.data.reshape(n, m)
         raise Exception("Data frames number should be at least one")
 
-    Nx, Ny = framesDatas[0].shape
-
+    Ny, Nx = framesDatas[0].shape
+    # print "nx ny",Nx, Ny
     X, Y = np.meshgrid(np.linspace(sizeX[0], sizeX[1], Nx), np.linspace(sizeY[0], sizeY[1], Ny))
-
+    # print "x shape ", X.shape, "  Y shape ", Y.shape
+    # print "x, y fvm1"
+    # print X
+    # print Y
     if not dataRange:
         minD = min(framesDatas[0].flatten())
         maxD = max(framesDatas[0].flatten())
@@ -332,6 +393,7 @@ def animate_contour_plot(framesDatas, sizeX=(0, 1), sizeY=(0, 1), dataRange=None
     fig = plt.figure()
     plt.axes().set_aspect('equal', 'datalim')
     ticks = np.linspace(minD, maxD, nLevels + 1)
+
     cs = plt.contourf(X, Y, framesDatas[0], ticks)
     cbar = fig.colorbar(cs, ticks=ticks)
     cbar.ax.set_yticklabels(map(str, ticks))
@@ -341,7 +403,7 @@ def animate_contour_plot(framesDatas, sizeX=(0, 1), sizeY=(0, 1), dataRange=None
     Ta = str(Tempa)
     adj = str(adj)
     Aa = "diff: " + Aa + "   dt: "+ Ba + "   n: " + Ca + "   AdjPhi: " + adj
-    print Aa
+    # print Aa
     cbar.ax.set_ylabel(Aa)
 
     if len(framesDatas) > 1:

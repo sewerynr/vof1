@@ -10,8 +10,8 @@ adj = 0
 DlPrzX = 1.
 DlPrzY = 1.
 
-n = 40
-
+n = 30
+m = n
 dx = DlPrzX/n
 dy = DlPrzY/n
 
@@ -24,7 +24,7 @@ nt = (tk - tp)/dt
 x0, y0, dl = (0, 0, 0)
 diffusivity = 0.001
 
-node_c, cells, bound = siatka_regularna_prost(n, dx, dy, x0, y0)
+node_c, cells, bound = siatka_regularna_prost(n, m,  dx, dy, x0, y0)
 
 mesh = Mesh(node_c, cells, bound)                                # 1. tworzy obiekt mesh klasy Mesh, 2. generujemy siatke dla tego obiektu funkcja siatka_reg...
 
@@ -72,7 +72,7 @@ phi = edgeU.dot(mesh.normals)                                   # oblicz UnaKraw
 #    #!!!!!!!!!!! blad pola predkosci - zrodlowosc !!!!!!!!!!!!
 # animate_contour_plot([inter(mesh.xy, mesh.cells, eInt(phi)).reshape((n+1, n+1))], skip=10, repeat=False, interval=75)
 
-adj = adjustPhi(phi, mesh)               #pobiera i pracuje i zwraca phi zmodyfikowne
+adj = adjustPhi(phi)               #pobiera i pracuje i zwraca phi zmodyfikowne
 
 # animate_contour_plot([inter(mesh.xy, mesh.cells, eInt(phi)).reshape((n+1, n+1))], skip=10, repeat=False, interval=75)
 # plt.show()
@@ -122,7 +122,7 @@ for iter in range(int(nt)):
         step += 10 + 1
     print "pozostalo: ", int(nt - iter)
 
-anim = animate_contour_plot(Results, skip=2, repeat=False, interval=75, nLevels=20, nN=n, dataRange=[-2., 2], diff=diffusivity, dt=dt, adj=adj)
+anim = animate_contour_plot(Results, skip=2, repeat=False, interval=75, nLevels=20, nN=n, dataRange=[0., 2], diff=diffusivity, dt=dt, adj=adj)
 #
 # from interpolacja import inter
 

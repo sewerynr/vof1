@@ -38,9 +38,54 @@ import numpy as np
 
 import numpy as np
 
-index = []
-for a in range(10):
-    index.append(a)
+# index = []
+# for a in range(10):
+#     index.append(a)
+#
+#
+# print index
 
+m = 4
+n = 1
 
-print index
+boundaries_BC = list()
+mat = list()
+for i in range (m):
+    mat.append([0, 0])
+
+boundaries_BC.append(mat)
+
+mat = list()
+for i in range (n):
+    mat.append([0, 0])
+
+boundaries_BC.append(mat)
+
+mat = list()
+for i in range (m):
+    mat.append([0, 0])
+
+boundaries_BC.append(mat)
+
+mat = list()
+for i in range (n):
+    mat.append([0, 0])
+
+boundaries_BC.append(mat)
+
+# boundaries_BC.append([[0, 0]] * n)
+# boundaries_BC.append([[0, 0]] * m)
+# boundaries_BC.append([[0, 0]] * n)
+
+np.array(boundaries_BC)
+
+print boundaries_BC
+print boundaries_BC[0]
+print boundaries_BC[0][0]
+boundaries_BC[0][0][0] = 1
+print boundaries_BC[0][0][0]
+
+boundaries_BC[2][2][1] = 100
+print boundaries_BC
+
+# print  boundaries_BC

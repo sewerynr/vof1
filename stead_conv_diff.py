@@ -6,13 +6,14 @@ einterp = EdgeField.interp
 adj = 0
 DlPrzX = 1.
 DlPrzY = 1.
-n = 40
+n = 10
+m = n
 dx = DlPrzX/n
 dy = DlPrzY/n
 x0, y0, dl = (0, 0, 0)
 diffusivity = 0.1
 
-node_c, cells, bound = siatka_regularna_prost(n, dx, dy, x0, y0)
+node_c, cells, bound = siatka_regularna_prost(n, m, dx, dy, x0, y0)
 mesh = Mesh(node_c, cells, bound)
 
 T = SurfField(mesh, Dirichlet)
@@ -39,7 +40,7 @@ phi = edgeU.dot(mesh.normals)
 # phi = EdgeField(mesh)
 # phi.data = generate_phi_r(mesh, constant_velocity) #np.multiply(, mesh.eLengths)
 
-# adj = adjustPhi(phi, mesh)
+adj = adjustPhi(phi)
 
 Md, Fd = laplace(diffusivity, T)
 Mc, Fc = div(phi, T)
@@ -81,11 +82,11 @@ T.setValues(res)
 
 print ">>>> info: ", info
 
-# animate_contour_plot([T.data.reshape(n, n)], skip=10, repeat=False, interval=75)
-animate_contour_plot([inter(mesh.xy, mesh.cells, T.data).reshape((n+1, n+1))], skip=10, nLevels=16, repeat=False, interval=75, nN=n, diff=diffusivity, adj=adj)
+# animate_contour_plot([T.data.reshape(n, m)], skip=10, repeat=False, interval=75)
+animate_contour_plot([inter(mesh.xy, mesh.cells, T.data).reshape((n+1, m+1))], skip=10, nLevels=16, repeat=False, interval=75, nN=n, diff=diffusivity, adj=adj)
 
-# magU = np.sqrt(Ux.data**2 + Uy.data**2)
-# print magU.shape, n*n, Ux.data.shape
-# animate_contour_plot([magU.reshape(n, n)], skip=10, repeat=False, interval=75)
+magU = np.sqrt(Ux.data**2 + Uy.data**2)
+print magU.shape, n*m, Ux.data.shape
+animate_contour_plot([magU.reshape(n, m)], skip=10, repeat=False, interval=75)
 
 plt.show()

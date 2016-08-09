@@ -8,8 +8,8 @@ from interpolacja import *
 
 DlPrzX = 1.; DlPrzY = 1.
 
-n = 50                                                    # ilosc podzialow
-
+n = 10                                                    # ilosc podzialow
+m = n
 dx = DlPrzX/n
 dy = DlPrzY/n
 
@@ -26,7 +26,7 @@ import time
 
 # wsp_wezl, cells, bounduary = siatka_regularna_prost(n, dx, dy, x0, y0)  czyli metoda siatka_regularna_prost zwroci to co Mesh potrzebuje czyli nodes, cells, boundary
 
-node_c, cells, bound = siatka_regularna_prost(n, dx, dy, x0, y0)
+node_c, cells, bound = siatka_regularna_prost(n, m, dx, dy, x0, y0)
 
 mesh = Mesh(node_c, cells, bound)                         # 1. tworzy obiekt mesh klasy Mesh, 2. generujemy siatke dla tego obiektu funkcja siatka_reg...
 
@@ -66,7 +66,7 @@ pkt3 = n/2 + n*(n-5)                     # srodek 4 wiersze od gory
 
 from fvMatrix import fvMatrix
 
-Md, Fd = laplace(T, fvMatrix)#sLaplace(T)                                        # ukladanie macierzy i wektora prawych stron laplace
+Md, Fd = laplace(0.1, T, fvMatrix)  # sLaplace(T)                                        # ukladanie macierzy i wektora prawych stron laplace
 
 Mc, Fc = div(generate_phi_r(mesh, quadratic_velocity), T, fvMatrix)                      # ukladanie macierzy i wektora prawych stron, dostaje D i Rhs z div
 
@@ -87,7 +87,7 @@ T.data[:] = 0                          # War. Pocz. # [:] do listy przypisze war
 
 
 Results = list()
-Tn = T.data.reshape((n, n))
+Tn = T.data.reshape((n, m))
 Results.append(Tn)
 
 
@@ -103,7 +103,7 @@ for iter in range(int(nt)):
 
     T.data = T.data.reshape((len(F), 1))
 
-    Tn = T.data.reshape((n, n))
+    Tn = T.data.reshape((n, m))
     Results.append(Tn)
 
 # Animate results:
@@ -117,7 +117,7 @@ from matplotlib.pyplot import contourf
 from numpy import meshgrid
 
 
-animate_contour_plot([inter(mesh.xy, mesh.cells, T.data).reshape((n+1,n+1))], skip=10, repeat=False, interval=75, dataRange=[0, 10])
+animate_contour_plot([inter(mesh.xy, mesh.cells, T.data).reshape((n+1,m+1))], skip=10, repeat=False, interval=75, dataRange=[0, 10])
 
 q = quiver(mesh.cell_centers[:,0], mesh.cell_centers[:,1], gradT[:, 0], gradT[:, 1])
 
