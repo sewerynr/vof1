@@ -1,14 +1,7 @@
-from mesh import Mesh
-from numpy.linalg import solve
-from fvm1 import *
-from field import *
-from interpolacja import *
+DlPrzX = 1.
+DlPrzY = 1.
 
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!  Zmienne w czasie zapis macierzy zadkich jako "wektory" !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-DlPrzX = 1.; DlPrzY = 1.
-
-n = 50                                                   # ilosc podzialow
+n = 20                                                   # ilosc podzialow
 m = n
 dx = DlPrzX/m
 dy = DlPrzY/n
@@ -22,6 +15,18 @@ nt = (tk - tp)/dt
 x0, y0, dl = (0, 0, 0)
 
 viscosity = 0.01
+mom_relax = 0.7
+
+from mesh import Mesh
+from numpy.linalg import solve
+from fvm1 import *
+from field import *
+from interpolacja import *
+from fvMatrix import fvMatrix
+from scipy.sparse.linalg.isolve.iterative import bicgstab
+
+einterp = EdgeField.interp
+
 
 node_c, cells, bound = siatka_regularna_prost(n, m, dx, dy, x0, y0)
 
@@ -35,44 +40,40 @@ Ux.setBoundaryCondition(Dirichlet(mesh, 2, 1.))
 
 np.set_printoptions(precision=3)
 
-from fvMatrix import fvMatrix
-einterp = EdgeField.interp
-
 Mxd, Fxd = laplace(viscosity, Ux)
 Myd, Fyd = laplace(viscosity, Uy)
 
-from scipy.sparse.linalg.isolve.iterative import bicgstab
-
-
-for i in range(300):
+for i in range(120):
     print "iter", i
-    edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))          # interpoluje krawedziowe pole predkosci
-    phi = edgeU.dot(mesh.normals)                               # do RC 
-    gradP = grad(p)
+    edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))          # interpoluje krawedziowe pole predkosci z nowych wartosci w kazdym kroku
+    phi = edgeU.dot(mesh.normals)                               # do RC phi = v * n
+    gradP = grad(p)                                             # obl gradienty cisnienia w srodkach komorek z nowych wart cisnienia w kazdym kroku
 
     Mxc, Fxc = div(phi, Ux)             # ukladanie macierzy i wektora prawych stron, dostaje D i Rhs z div
     Myc, Fyc = div(phi, Uy)
 
     # ukladanie rownan transportu dla pedu
-    momX_M = Mxc - Mxd * viscosity
-    momY_M = Myc - Myd * viscosity
+    momX_M = Mxc - Mxd
+    momY_M = Myc - Myd
     # RHS:
-    momX_F = -(Fxc - Fxd * viscosity) - gradP[:, 0] * mesh.cells_areas
-    momY_F = -(Fyc - Fyd * viscosity) - gradP[:, 1] * mesh.cells_areas
+    momX_F = -(Fxc - Fxd) - gradP[:, 0] * mesh.cells_areas
+    momY_F = -(Fyc - Fyd) - gradP[:, 1] * mesh.cells_areas
 
     print "Initial continuity residual:", np.linalg.norm(edgeDiv(phi))      # spr spelnienie RC w obszarze
+    print "Initial Ux residual:", np.linalg.norm(momX_M.dot(Ux.data) - momX_F)
+    print "Initial Uy residual:", np.linalg.norm(momY_M.dot(Uy.data) - momY_F)
 
-    # print "Initial Ux residual:", np.linalg.norm(momX_M.dot(Ux.data) - momX_F)
-    # print "Initial Uy residual:", np.linalg.norm(momY_M.dot(Uy.data) - momY_F)
-
-    momX_M.relax(0.7)
-    momY_M.relax(0.7)
+    momX_M.relax3(momX_F, Ux, mom_relax)
+    momY_M.relax3(momY_F, Uy, mom_relax)
 
     # 2.  rozwiazuje rownania pedu:
     # oblicz i uaktualniam pole predkosci (setValues()):
 
     Ux.setValues(bicgstab(A=momX_M.sparse, b=momX_F, x0=Ux.data, tol=1e-8)[0])
     Uy.setValues(bicgstab(A=momY_M.sparse, b=momY_F, x0=Uy.data, tol=1e-8)[0])
+
+    edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))  # pole predkosci na krawedziach my mamy w centrach (tak ukladam i rozwiazuje uklad rownan)
+    phi = edgeU.dot(mesh.normals)
 
     A = np.array([np.array(momX_M.diag), np.array(momY_M.diag)]).T
 
@@ -84,11 +85,8 @@ for i in range(300):
 
     coeffEdge = EdgeField.vector(EdgeField.interp(coeffFieldX), EdgeField.interp(coeffFieldY))          # interpoluje wsp ze srodkow komorek na fejsy
 
-    edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))      # pole predkosci na krawedziach my mamy w centrach (tak ukladam i rozwiazuje uklad rownan)
-    phi = edgeU.dot(mesh.normals)
-
     # ukladam rownania poprawki cisnienia
-    Mpd, Fpd = laplace1(coeffEdge, p)
+    Mpd, Fpd = laplace1(coeffEdge, p)       # dla nowych wartosci predkosci juz policzonych
     Fpd = -Fpd + edgeDiv(phi)
 
     pressP = SurfField(mesh, Neuman)
@@ -96,7 +94,7 @@ for i in range(300):
     pressP.setValues(bicgstab(A=Mpd.sparse, b=Fpd, x0=p.data, tol=1e-8)[0])
 
     # uaktualniam pole cisnienia
-    p.setValues(p.data + (1. - 0.7) * pressP.data)
+    p.setValues(p.data + (1 - mom_relax) * pressP.data)
 
     # licze gradienty w srodkach komorek z obliczonych cisnieni w srodkach kom.
     gradP = grad(pressP)
@@ -104,6 +102,8 @@ for i in range(300):
     # uaktualniam pole predkosci (*) korzystajac z uproszczonego rownania pedu
     Ux.setValues(Ux.data - gradP[:, 0] * mesh.cells_areas / A[:, 0])
     Uy.setValues(Uy.data - gradP[:, 1] * mesh.cells_areas / A[:, 1])
+
+
 
 animate_contour_plot([Ux.data.reshape((n, m))], skip=1, nLevels=20, repeat=False, interval=75, diff=viscosity, adj=0, nN=n)
 plt.title("Ux")

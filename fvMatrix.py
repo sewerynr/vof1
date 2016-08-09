@@ -113,11 +113,11 @@ class fvMatrix:                   # do sparse co na przek, jakie wartosci (data)
         self.reset_cache()
 
     def dot(self, X):
-        if X.shape[1] is None:
-            return self.matvec(X)
-        else:
+        # if X.shape[1] is None:
+        return self.matvec(X)
+        # else:
             #implement matrix - matrix multiplication
-            pass
+            # pass
 
     @property
     def T(self):
@@ -136,6 +136,7 @@ class fvMatrix:                   # do sparse co na przek, jakie wartosci (data)
     # definiujemy operacje na macierzach :
     def __add__(self, other):
         mat = fvMatrix(self)
+        # kopia siebie ma zwrucic nowa macierz
         mat.add(other)
         return mat
 

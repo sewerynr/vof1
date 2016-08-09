@@ -139,7 +139,7 @@ class Neuman(BoundaryField):                                        # klasa dla 
         for i in range(len(self.mesh.boundaries[self.id])):
             id_edge = self.mesh.boundaries[self.id][i]                          # indeks krawedzi w WB
             c = self.field.mesh.list_kr[id_edge, 2]                             # indeks wlasciciela do niego dopicac w rhs
-            Rhs[c] += self.deriv * np.dot( self.mesh.Se[id_edge], edgeFieldCoeff.data[id_edge])     #  dodac razy dlugosc
+            Rhs[c] += self.deriv * np.dot( self.mesh.Se[id_edge], edgeFieldCoeff.data[id_edge])
 
 
 

@@ -78,7 +78,7 @@ adj = adjustPhi(phi)               #pobiera i pracuje i zwraca phi zmodyfikowne
 # plt.show()
 
 
-Md, Fd = laplace(diffusivity, T)
+Md, Fd = laplace1(diffusivity, T)
 Mc, Fc = div(phi, T)
 
 # pkt1 = n/2 + n*n/2                       # pkt srodek
