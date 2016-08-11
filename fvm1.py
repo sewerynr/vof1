@@ -46,8 +46,6 @@ def siatka_regularna_prost(n, m,  dx, dy, x0, y0):
 
     temp = np.array([[[0] * 1] * (max(m, n)+1)])
 
-    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  ??????????????????????????  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
     # boundaries_BC[2][[1][0]] = [100, 78]
     licznik = 0
     for id, wspw in enumerate(node_coordinates):
@@ -89,8 +87,6 @@ def siatka_regularna_prost(n, m,  dx, dy, x0, y0):
     # print boundaries_BC   # krawedzie przez numery punktow [0 1] [1 2] itd...
 
     return node_coordinates, cells, boundaries_BC
-    # Utworzenie komorek na podstawie wezlow (zbior nr wezlow budujacych kom.).
-    # Definicja 1 komorki: [ nr wz1, nr wz2, nr wz3, nr wz4 ]
 
 def npArrayMatrix(mesh):
     return np.array([[0.] * mesh.n] * mesh.n)
@@ -153,9 +149,6 @@ def laplace1(coeff, field, matrixGeneratorFunction=fvMatrix):  # matrixProvider 
     for i, kraw in enumerate(lista_kra):
         if kraw[3] > -1:
             k1, k2, c, f = kraw
-            # cC = mesh.cell_centers[c]
-            # cF = mesh.cell_centers[f]
-
             CF = mesh.center_to_center_edge[i]
             Snorm = mesh.Se[i]
             coeff = edgeCoeff.data[i]

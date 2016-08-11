@@ -15,7 +15,7 @@ class fvMatrix:                   # do sparse co na przek, jakie wartosci (data)
             if isinstance(meshOrMatrix, int):            # jezeli ktos poda int jako rozmiar macierzy
                 self.N = meshOrMatrix
                 self.M = self.N
-            elif isinstance(meshOrMatrix, tuple):           # (liczba, liczba)
+            elif isinstance(meshOrMatrix, tuple):        # (liczba, liczba)
                 self.N, self.M = meshOrMatrix
             else:                                        # jesli argument wejsciowy to mesh
                 self.N = meshOrMatrix.n
@@ -91,24 +91,30 @@ class fvMatrix:                   # do sparse co na przek, jakie wartosci (data)
 
         return F
 
-    def relax(self, coeff=0.5):
-        for i in range(self.shape[0]):
-            self.data[i] = [d * coeff for d in self.data[i]]
-        self.reset_cache()
+    def relaxM1(self, Rhs, field, coeff=0.5):
+        coeff2 = 1. - coeff
+        for i, dat in enumerate(self.data):         # i numer komorki   dat to wiersz z danmi dla danej komurki (wiersz tablicy)
+            gindex = self.indices[i]                # gindex to numery gdzie sa wstawione wartosci dat w macierz
+            for j in range (len(gindex)):
+                Rhs[i] -= dat[j] * coeff2 * field[gindex[j]]
 
-    def relax2(self, Rhs, Field, coeff):
-        self.diag = [d / coeff for d in self.diag]
-        for i in range(len(self.diag)):
-            d = self.diag[i]
-            self.diag[i] /= coeff
-            Rhs[i] += (self.diag[i] - d) * Field.data[i]
-            # Rhs[i] /= coeff
+        for i in range(len(self.data)):
+            for j, d in enumerate(self.data[i]):      # wez wiersz i z data
+                self.data[i][j] = d * coeff
+
+        # l = list()
+        # for i in range(10):
+        #     l.append(i)
+        #
+        # l = sum([ i for i in range(10) ])
+
         self.reset_cache()
 
     def relax3(self, Rhs, Field, coeff):
         c2 = 1. - coeff
         for i in range(self.shape[0]):
             Rhs[i] -= sum([d * c2 * Field[index] for d, index in zip(self.data[i], self.indices[i])])
+
             self.data[i] = [d * coeff for d in self.data[i]]
         self.reset_cache()
 
@@ -199,7 +205,6 @@ class fvMatrix:                   # do sparse co na przek, jakie wartosci (data)
 
 
     def addEntry(self, row, col, value):
-
         if row == col:                        # spr czy na przekatnej jezeli tak to dopisz do diag
             self.diag[row] += value
 
@@ -210,17 +215,15 @@ class fvMatrix:                   # do sparse co na przek, jakie wartosci (data)
                     colLocalId = i
 
             self.data[row][colLocalId] += value
-
         else:
             self.data[row].append(value)
             self.indices[row].append(col)
 
-        self.reset_cache()                    # cos zmienione w macierzy
+        self.reset_cache()                           # cos zmienione w macierzy
 
 
     def setEntry(self, row, col, value):
-
-        if row == col:                        # spr czy na przekatnej jezeli tak to wpisz do diag
+        if row == col:                               # spr czy na przekatnej jezeli tak to wpisz do diag
             self.diag[row] = value
 
         elif col in self.indices[row]:
@@ -229,14 +232,13 @@ class fvMatrix:                   # do sparse co na przek, jakie wartosci (data)
                 if id == col:
                     colLocalId = i
             self.data[row][colLocalId] = value
-
         else:
-            self.data[row].append(value)            # append - dodaj do data[row] wartosc value
-            self.indices[row].append(col)           # dodaj do indeksow w ktorych stoi wartosc kolumny w ktorej dana wartosc value
+            self.data[row].append(value)             # append - dodaj do data[row] wartosc value
+            self.indices[row].append(col)            # dodaj do indeksow w ktorych stoi wartosc kolumny w ktorej dana wartosc value
 
         self.reset_cache()
 
-    def __setitem__(self, key, value):                  # !!!!!!!!! to jako dodawanie do macierzy D[w,s]
+    def __setitem__(self, key, value):               # !!!!!!!!! to jako dodawanie do macierzy D[w,s]
         self.setEntry(key[0], key[1], value)
 
     def __getitem__(self, item):
@@ -249,7 +251,6 @@ class fvMatrix:                   # do sparse co na przek, jakie wartosci (data)
             for i, id in enumerate(self.indices[row]):
                 if id == col:
                     colLocalId = i
-
             return self.data[row][colLocalId]
         else:
             return 0.
@@ -258,7 +259,6 @@ class fvMatrix:                   # do sparse co na przek, jakie wartosci (data)
     def row_ptr(self):
         if self.rowLengths is not None:
             return self.rowLengths
-
         rowLengths = [0]
         sumLen = 0
         for rowId, d in enumerate(self.data):
@@ -276,30 +276,25 @@ class fvMatrix:                   # do sparse co na przek, jakie wartosci (data)
             N = mesh
         else:
             N = mesh.n
-
         mat = fvMatrix(N)
-
         if not hasattr(diagValue, "__iter__"):
             mat.diag = [diagValue for i in range(mat.shape[0])]
         elif len(diagValue) == mat.shape[0]:
             mat.diag = diagValue
-
         else:
             raise Exception("Can't assign vector of length "+str(len(diagValue)) +
                             " to diagonal of matrix "+str(mat.shape))
-
         return mat
 
     # mozna skeszowac i dac wersje bez diagonali ( przeniesc dla szybszego dzialania )
     def offdiagmul(self, U):               # liczy iloczyn danego wektora U i macierzy "masowej" bez el na diagonali
         import numpy as np
         H = [0. for i in range(self.shape[0])]
-
-        for row, (ind, da) in enumerate(zip(self.indices, self.data)):
-            for col, val in zip(ind, da):
-                H[row] += U[col] * val          # val juz jest wart
+        # data zawiera tylko wartosci poza przekatna
+        for row, (ind, dat) in enumerate(zip(self.indices, self.data)):          # zlicza kolumny i pobiera z indeces i data cale wiersze mu odpowiadajace
+            for col, val in zip(ind, dat):          # ind odp kolumnie w ktorej przechowywana jest wartosc val (wszystko dla wierdza row)
+                H[row] += U[col] * val              # val juz jest wart z data val = dat
         return np.array(H)
-
 
 # mat[5,3] = 5.         To samo
 # mat.addEntry(5,3,5.)

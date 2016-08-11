@@ -1,12 +1,12 @@
 DlPrzX = 1.
 DlPrzY = 1.
 
-n = 20                                                   # ilosc podzialow
+n = 30                                                   # ilosc podzialow
 m = n
 dx = DlPrzX/m
 dy = DlPrzY/n
 
-dt = 0.001                                                 # CFL u*dt/dx <= 1
+dt = 0.001                                              # CFL u*dt/dx <= 1
 tp = 0
 tk = 0.1
 
@@ -27,7 +27,6 @@ from scipy.sparse.linalg.isolve.iterative import bicgstab
 
 einterp = EdgeField.interp
 
-
 node_c, cells, bound = siatka_regularna_prost(n, m, dx, dy, x0, y0)
 
 mesh = Mesh(node_c, cells, bound)                         # 1. tworzy obiekt mesh klasy Mesh, 2. generujemy siatke dla tego obiektu funkcja siatka_reg...
@@ -40,8 +39,8 @@ Ux.setBoundaryCondition(Dirichlet(mesh, 2, 1.))
 
 np.set_printoptions(precision=3)
 
-Mxd, Fxd = laplace(viscosity, Ux)
-Myd, Fyd = laplace(viscosity, Uy)
+Mxd, Fxd = laplace1(viscosity, Ux)
+Myd, Fyd = laplace1(viscosity, Uy)
 
 for i in range(120):
     print "iter", i
@@ -63,8 +62,8 @@ for i in range(120):
     print "Initial Ux residual:", np.linalg.norm(momX_M.dot(Ux.data) - momX_F)
     print "Initial Uy residual:", np.linalg.norm(momY_M.dot(Uy.data) - momY_F)
 
-    momX_M.relax3(momX_F, Ux, mom_relax)
-    momY_M.relax3(momY_F, Uy, mom_relax)
+    momX_M.relaxM1(momX_F, Ux, mom_relax)
+    momY_M.relaxM1(momY_F, Uy, mom_relax)
 
     # 2.  rozwiazuje rownania pedu:
     # oblicz i uaktualniam pole predkosci (setValues()):
@@ -72,7 +71,7 @@ for i in range(120):
     Ux.setValues(bicgstab(A=momX_M.sparse, b=momX_F, x0=Ux.data, tol=1e-8)[0])
     Uy.setValues(bicgstab(A=momY_M.sparse, b=momY_F, x0=Uy.data, tol=1e-8)[0])
 
-    edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))  # pole predkosci na krawedziach my mamy w centrach (tak ukladam i rozwiazuje uklad rownan)
+    edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))       # pole predkosci na krawedziach my mamy w centrach (tak ukladam i rozwiazuje uklad rownan)
     phi = edgeU.dot(mesh.normals)
 
     A = np.array([np.array(momX_M.diag), np.array(momY_M.diag)]).T
@@ -86,7 +85,7 @@ for i in range(120):
     coeffEdge = EdgeField.vector(EdgeField.interp(coeffFieldX), EdgeField.interp(coeffFieldY))          # interpoluje wsp ze srodkow komorek na fejsy
 
     # ukladam rownania poprawki cisnienia
-    Mpd, Fpd = laplace1(coeffEdge, p)       # dla nowych wartosci predkosci juz policzonych
+    Mpd, Fpd = laplace1(coeffEdge, p)           # dla nowych wartosci predkosci juz policzonych
     Fpd = -Fpd + edgeDiv(phi)
 
     pressP = SurfField(mesh, Neuman)
@@ -104,7 +103,6 @@ for i in range(120):
     Uy.setValues(Uy.data - gradP[:, 1] * mesh.cells_areas / A[:, 1])
 
 
-
 animate_contour_plot([Ux.data.reshape((n, m))], skip=1, nLevels=20, repeat=False, interval=75, diff=viscosity, adj=0, nN=n)
 plt.title("Ux")
 
@@ -115,10 +113,10 @@ animate_contour_plot([p.data.reshape((n, m))], skip=1, nLevels=20, repeat=False,
 plt.title("p")
 
 Umag = np.sqrt(np.multiply(Ux.data, Ux.data) + np.multiply(Uy.data, Uy.data))
-animate_contour_plot([inter(mesh.xy, mesh.cells, Umag).reshape((n+1, m+1))], skip=1, nLevels=20, repeat=False, interval=75, diff=viscosity, adj=0, nN=n)
+animate_contour_plot([inter(mesh.xy, mesh.cells, Umag).reshape((n+1, m+1))], skip=1, dataRange= [0,1], nLevels=25, repeat=False, interval=75, diff=viscosity, adj=0, nN=n)
 #
-from matplotlib.pyplot import quiver
-q = quiver(mesh.cell_centers[:, 0], mesh.cell_centers[:, 1], Ux[:], Uy[:])
+# from matplotlib.pyplot import quiver
+# q = quiver(mesh.cell_centers[:, 0], mesh.cell_centers[:, 1], Ux[:], Uy[:])
 plt.title("magU")
 plt.show()
 
