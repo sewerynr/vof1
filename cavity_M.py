@@ -39,8 +39,8 @@ Ux.setBoundaryCondition(Dirichlet(mesh, 2, 1.))
 
 np.set_printoptions(precision=3)
 
-Mxd, Fxd = laplace1(viscosity, Ux)
-Myd, Fyd = laplace1(viscosity, Uy)
+Mxd, Fxd = laplace(viscosity, Ux)
+Myd, Fyd = laplace(viscosity, Uy)
 
 for i in range(120):
     print "iter", i
@@ -85,7 +85,7 @@ for i in range(120):
     coeffEdge = EdgeField.vector(EdgeField.interp(coeffFieldX), EdgeField.interp(coeffFieldY))          # interpoluje wsp ze srodkow komorek na fejsy
 
     # ukladam rownania poprawki cisnienia
-    Mpd, Fpd = laplace1(coeffEdge, p)           # dla nowych wartosci predkosci juz policzonych
+    Mpd, Fpd = laplace(coeffEdge, p)           # dla nowych wartosci predkosci juz policzonych
     Fpd = -Fpd + edgeDiv(phi)
 
     pressP = SurfField(mesh, Neuman)

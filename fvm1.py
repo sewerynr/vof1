@@ -94,37 +94,37 @@ def npArrayMatrix(mesh):
 from fvMatrix import fvMatrix
 
 # ta do ustalonej w czasie
-def laplace(coeff, field, matrixGeneratorFunction = fvMatrix):    # matrixProvider wywoluje konstruktor metody fvMatrix  z polem T lambda funkcja anonimowa
-    n, lista_kra = field.mesh.n, field.mesh.list_kr
-    macierz_K_e = matrixGeneratorFunction(field.mesh)
-    mesh = field.mesh
+# def laplace(coeff, field, matrixGeneratorFunction = fvMatrix):    # matrixProvider wywoluje konstruktor metody fvMatrix  z polem T lambda funkcja anonimowa
+#     n, lista_kra = field.mesh.n, field.mesh.list_kr
+#     macierz_K_e = matrixGeneratorFunction(field.mesh)
+#     mesh = field.mesh
+#
+#     from field import EdgeField, SurfField, Neuman
+#     coeffField = SurfField(mesh, bcGenerator=Neuman)
+#
+#     if not hasattr(coeff, "__iter__"):                  # czy to liczba czy tablica
+#         coeff = np.ones(len(mesh.cells)) * coeff
+#     coeffField.setValues(np.array(coeff))
+#     edgeCoeff = EdgeField.interp(coeffField)
+#
+#     for i, kraw in enumerate(lista_kra):
+#         if kraw[3] > -1:
+#             k1, k2, c, f = kraw
+#             cC = mesh.cell_centers[c]
+#             cF = mesh.cell_centers[f]
+#             CF = cF - cC
+#             Snorm = mesh.Se[i]
+#             a = edgeCoeff.data[i] * np.dot(CF, Snorm) / np.dot(CF, CF)
+#             macierz_K_e[c, c] += - a                         # to co odp wlascicielowi, diagonalny element
+#             macierz_K_e[c, f] += a                           # to co odp sasiadowi z przeciwnym znakiem, poza diagonala
+#             macierz_K_e[f, f] += - a    # krawedz wplywa na rownanie sasiada, teraz sasiad jest w centrum komorki
+#             macierz_K_e[f, c] += a      # a poza diagonala jest wlasciciel
+#
+#     rhs = np.zeros(n)
+#     field.apply_bc_diffusiveFlux(edgeCoeff, macierz_K_e, rhs)
+#     return macierz_K_e, rhs
 
-    from field import EdgeField, SurfField, Neuman
-    coeffField = SurfField(mesh, bcGenerator=Neuman)
-
-    if not hasattr(coeff, "__iter__"):                  # czy to liczba czy tablica
-        coeff = np.ones(len(mesh.cells)) * coeff
-    coeffField.setValues(np.array(coeff))
-    edgeCoeff = EdgeField.interp(coeffField)
-
-    for i, kraw in enumerate(lista_kra):
-        if kraw[3] > -1:
-            k1, k2, c, f = kraw
-            cC = mesh.cell_centers[c]
-            cF = mesh.cell_centers[f]
-            CF = cF - cC
-            Snorm = mesh.Se[i]
-            a = edgeCoeff.data[i] * np.dot(CF, Snorm) / np.dot(CF, CF)
-            macierz_K_e[c, c] += - a                         # to co odp wlascicielowi, diagonalny element
-            macierz_K_e[c, f] += a                           # to co odp sasiadowi z przeciwnym znakiem, poza diagonala
-            macierz_K_e[f, f] += - a    # krawedz wplywa na rownanie sasiada, teraz sasiad jest w centrum komorki
-            macierz_K_e[f, c] += a      # a poza diagonala jest wlasciciel
-
-    rhs = np.zeros(n)
-    field.apply_bc_diffusiveFlux(edgeCoeff, macierz_K_e, rhs)
-    return macierz_K_e, rhs
-
-def laplace1(coeff, field, matrixGeneratorFunction=fvMatrix):  # matrixProvider wywoluje konstruktor metody fvMatrix  z polem T lambda funkcja anonimowa
+def laplace(coeff, field, matrixGeneratorFunction=fvMatrix):  # matrixProvider wywoluje konstruktor metody fvMatrix  z polem T lambda funkcja anonimowa
     n, lista_kra = field.mesh.n, field.mesh.list_kr
     macierz_K_e = matrixGeneratorFunction(field.mesh)
     mesh = field.mesh

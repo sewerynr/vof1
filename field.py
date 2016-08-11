@@ -82,10 +82,15 @@ class Dirichlet(BoundaryField):                                         # clasa 
 
             CK = pK - pC
             Snorm = field.mesh.Se[id_edge]
-            a = edgeFieldCoeff.data[id_edge] * np.dot(CK, Snorm) / np.dot(CK, CK)
-
+            # a = edgeFieldCoeff.data[id_edge] * np.dot(CK, Snorm) / np.dot(CK, CK)
+            # print a
+            #
+            a = (edgeFieldCoeff.data[id_edge] * CK).dot(Snorm) / CK.dot(CK)
             EqMat[c, c] += - a
+            print  self.data[i] * a
             Rhs[c] += self.data[i] * a                 # wartosc na brzegu przemnozona przez wspolczynnik. -= bo przerzucamy do wekt. prawych stron
+
+            # Rhs[c] += self.deriv * np.dot(self.mesh.Se[id_edge], edgeFieldCoeff.data[id_edge])
 
 
     def insertConvectiveFlux(self, EqMat, Rhs, phi):
@@ -140,7 +145,6 @@ class Neuman(BoundaryField):                                        # klasa dla 
             id_edge = self.mesh.boundaries[self.id][i]                          # indeks krawedzi w WB
             c = self.field.mesh.list_kr[id_edge, 2]                             # indeks wlasciciela do niego dopicac w rhs
             Rhs[c] += self.deriv * np.dot( self.mesh.Se[id_edge], edgeFieldCoeff.data[id_edge])
-
 
 
     def insertConvectiveFlux(self, EqMat, Rhs, phi):
@@ -207,7 +211,6 @@ class SurfField:
     def apply_bc_convectiveFlux(self, EqMat, Rhs, phi):          # ma wrzucic ten warunek na macierz M i rhs
         for b in self.boundaries:                                # petla po 4 war brzeg (te brzegi juz zapisalem uzywajac setBoundaryCondition
             b.insertConvectiveFlux(EqMat, Rhs, phi)              # jesli neuman to wywola z klasy neuman jesil dirichlet to z dirichlet zalezy czym jest b
-
 
 
 class EdgeField:
@@ -393,30 +396,6 @@ def grad(surfField):                     # Green - Gauss  dostaje pole w srodkac
 
     return cellGrad         # zwraca wartosci grad w sr komorek
 
-def cellGrad(surfField):                     # Green - Gauss
-    import numpy as np
-
-    mesh = surfField.mesh
-
-    efield = EdgeField.interp(surfField)
-
-    cellGrad = np.zeros((len(mesh.cells), 2), dtype=float)
-
-    edgeVecs = mesh.Se * efield.data[:, np.newaxis]
-
-    np.add.at(cellGrad, mesh.list_kr[:, 2], edgeVecs)
-    np.subtract.at(cellGrad, mesh.list_kr[mesh.internalEdges, 3], edgeVecs[mesh.internalEdges])
-
-    # for e, (defE, valE) in enumerate(zip(mesh.list_kr, efield.data)):
-    #
-    #     cellGrad[defE[2], :] += mesh.Se[e]*valE
-    #
-    #     if defE[3] > -1:
-    #         cellGrad[defE[3], :] -= mesh.Se[e]*valE
-
-    cellGrad /= mesh.cells_areas[:, np.newaxis]
-
-    return cellGrad
 
 def edgeDiv(edgeField):                     # calka obj z dywergencj po krawedziach   (bilans strumieni val*ds  po krawedziach)   RC
     mesh = edgeField.mesh

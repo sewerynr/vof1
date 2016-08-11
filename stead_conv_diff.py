@@ -6,7 +6,7 @@ einterp = EdgeField.interp
 adj = 0
 DlPrzX = 1.
 DlPrzY = 1.
-n = 10
+n = 20
 m = n
 dx = DlPrzX/n
 dy = DlPrzY/n
@@ -51,7 +51,7 @@ from scipy.sparse.linalg.isolve.iterative import bicgstab
 pkt2 = n/2 + n*10                             # srodek 4 wiersze od spodu
 # pkt3 = n/2 + n*(n-5)                         # srodek 4 wiersze od gory
 # Fd[pkt1] += -300
-Fd[pkt2] += 0.00001
+Fd[pkt2] += 0.0001
 # Fd[pkt3] += -200
 
 M = Mc - Md  #
