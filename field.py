@@ -55,6 +55,8 @@ class BoundaryField:          # pole dla krawedzi zawiera inf co na krawedziach 
     def __getitem__(self, item):
         return self.data[item]
 
+    def clone(self):
+        pass
 
 
 class Dirichlet(BoundaryField):                                         # clasa dla kazdej krawedzi o warunku dirich
@@ -169,9 +171,16 @@ class symmetry(Neuman):                                                         
 
 
 class SurfField:
-    def __init__(self, mesh, bcGenerator=BoundaryField):                        # pobiera mesh a z nim jego rozmiar i boundaries czyli WB
+    def __init__(self, mesh, bcGenerator=BoundaryField, data=None):                        # pobiera mesh a z nim jego rozmiar i boundaries czyli WB
         self.data = np.zeros(mesh.n)
         self.boundaries = []
+
+        if data is None:
+            self.data = np.zeros(mesh.n)
+        elif data.shape[0] != mesh.n:
+            raise Exception("data lenght should be equal to mesh.n")
+        else:
+            self.data = np.array(data)
 
         for i, _ in enumerate(mesh.boundaries):
             bc = bcGenerator(mesh, i)                              # wywoluje BonduaryField z meshem i z numerem krawedzi
@@ -185,6 +194,12 @@ class SurfField:
 
     def __getitem__(self, item):
         return self.data.__getitem__(item)
+
+    # def copyBoundaryConditions(self, otherSurfField):
+    #     self.boundaries = [bc.clone() for bc in otherSurfField.boundaries]
+    #     for b in self.boundaries:
+    #         b.setField(self)
+    #     self.updateBoundaryValues()
 
     def setBoundaryCondition(self, bcObject):           # to zada warunki brzegowe bcObject( np class/object nemuam) na surface field
         bcObject.setField(self)                         # na przyklad  neuman.setFirld(self)

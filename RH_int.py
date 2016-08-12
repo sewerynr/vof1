@@ -101,7 +101,7 @@ for i in range(80):
 
     # ukladam rownania poprawki cisnienia
     Mpd, Fpd = laplace(coeffEdge, p)           # dla nowych wartosci predkosci juz policzonych
-    Fpd = -Fpd + edgeDiv(phi)
+    Fpd = -Fpd + edgeDiv(phi)                  # plus RC
 
     pressP = SurfField(mesh, Neuman)
     # rozwiazuje rownanie poporawki cisinenia
@@ -128,7 +128,7 @@ animate_contour_plot([p.data.reshape((n, m))], skip=1, nLevels=20, repeat=False,
 plt.title("p")
 
 Umag = np.sqrt(np.multiply(Ux.data, Ux.data) + np.multiply(Uy.data, Uy.data))
-animate_contour_plot([inter(mesh.xy, mesh.cells, Umag).reshape((n+1, m+1))], skip=1, dataRange= [0,1], nLevels=25, repeat=False, interval=75, diff=viscosity, adj=0, nN=n)
+animate_contour_plot([inter(mesh.xy, mesh.cells, Umag).reshape((n+1, m+1))], skip=1, dataRange= [0,2], nLevels=25, repeat=False, interval=75, diff=viscosity, adj=0, nN=n)
 #
 from matplotlib.pyplot import quiver
 q = quiver(mesh.cell_centers[:, 0], mesh.cell_centers[:, 1], Ux[:], Uy[:])
