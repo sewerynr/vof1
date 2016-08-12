@@ -83,14 +83,9 @@ class Dirichlet(BoundaryField):                                         # clasa 
             CK = pK - pC
             Snorm = field.mesh.Se[id_edge]
             # a = edgeFieldCoeff.data[id_edge] * np.dot(CK, Snorm) / np.dot(CK, CK)
-            # print a
-            #
             a = (edgeFieldCoeff.data[id_edge] * CK).dot(Snorm) / CK.dot(CK)
             EqMat[c, c] += - a
-            print  self.data[i] * a
             Rhs[c] += self.data[i] * a                 # wartosc na brzegu przemnozona przez wspolczynnik. -= bo przerzucamy do wekt. prawych stron
-
-            # Rhs[c] += self.deriv * np.dot(self.mesh.Se[id_edge], edgeFieldCoeff.data[id_edge])
 
 
     def insertConvectiveFlux(self, EqMat, Rhs, phi):
@@ -112,7 +107,7 @@ class Neuman(BoundaryField):                                        # klasa dla 
         BoundaryField.__init__(self, mesh, bId)
 
         self.deriv = derivativeValue
-        self.id = bId                                           # zapisuje numer krawedzi pod oznaczeniem id
+        self.id = bId                                               # zapisuje numer krawedzi pod oznaczeniem id
         self.mesh = mesh
 
     # mamy pochodna (wartosci szukanej) na krawedzi ale nie wiemy jaka sama wartosci wiec do np wizualizacji przyda nam sie wartosc rozwiazaznia (calka z poch)
@@ -127,7 +122,7 @@ class Neuman(BoundaryField):                                        # klasa dla 
     def extrapolate(self, sol):                                      # i to numer krawedzi w WB
         for i, id_edge in enumerate(self.mesh.boundaries[self.id]):
             c = self.mesh.list_kr[id_edge, 2]                                            # pobierz wlascicela tej krawedzi
-            cc1 = sum(self.mesh.xy[self.mesh.cells[c], :]) / len(self.mesh.cells[c])  # srodek komorki  [x,y]
+            cc1 = sum(self.mesh.xy[self.mesh.cells[c], :]) / len(self.mesh.cells[c])     # srodek komorki  [x,y]
             n = self.mesh.edge_normal(id_edge)                   # normalny do wektora (krawedzi WB) ale o jego dlugosci (trzeba pobrac numer pod krawedzi )
             n = n / np.linalg.norm(n)                            # wersor normalny (podzielony przez swoja dlugosc)
             sr_pod_krawBC = sum([self.mesh.xy[nid] for nid in self.mesh.list_kr[id_edge, :2]]) / 2
@@ -140,7 +135,7 @@ class Neuman(BoundaryField):                                        # klasa dla 
             self.data[i] = Tbrzeg
 
 
-    def insertDiffusiveFlux(self, edgeFieldCoeff, EqMat, Rhs):  # pobiera macierz K i wektor pr stron
+    def insertDiffusiveFlux(self, edgeFieldCoeff, EqMat, Rhs):       # pobiera macierz K i wektor pr stron
         for i in range(len(self.mesh.boundaries[self.id])):
             id_edge = self.mesh.boundaries[self.id][i]                          # indeks krawedzi w WB
             c = self.field.mesh.list_kr[id_edge, 2]                             # indeks wlasciciela do niego dopicac w rhs

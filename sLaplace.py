@@ -9,8 +9,9 @@ from interpolacja import *
 DlPrzX = 1.; DlPrzY = 1.
 
 n = 50                                                    # ilosc podzialow
+m = n
 
-dx = DlPrzX/n
+dx = DlPrzX/m
 dy = DlPrzY/n
 
 dt = 0.0001                                                 # CFL u*dt/dx <= 1
@@ -20,13 +21,13 @@ tk = 0.1
 nt = (tk - tp)/dt
 
 x0, y0, dl = (0, 0, 0)
-
+viscosity = 0.01
 
 import time
 
 # wsp_wezl, cells, bounduary = siatka_regularna_prost(n, dx, dy, x0, y0)  czyli metoda siatka_regularna_prost zwroci to co Mesh potrzebuje czyli nodes, cells, boundary
 
-node_c, cells, bound = siatka_regularna_prost(n, dx, dy, x0, y0)
+node_c, cells, bound = siatka_regularna_prost(n,m, dx, dy, x0, y0)
 
 start = time.clock()
 mesh = Mesh(node_c, cells, bound)                         # 1. tworzy obiekt mesh klasy Mesh, 2. generujemy siatke dla tego obiektu funkcja siatka_reg...
@@ -42,7 +43,7 @@ T = SurfField(mesh)                                       # tworzy obiekt klasy 
 Tdir = 1
 TdirWB = 0
 
-T.setBoundaryCondition(Neuman(mesh, 0, 0))               # zero odpowiada zerowej krawedzi pobiera obiekt klasy Dirichlet (wywoluje go i tworzy)
+T.setBoundaryCondition(Neuman(mesh, 0, 1))               # zero odpowiada zerowej krawedzi pobiera obiekt klasy Dirichlet (wywoluje go i tworzy)
 #T.setBoundaryCondition(Dirichlet(mesh, 0, TdirWB))
 
 T.setBoundaryCondition(Neuman(mesh, 1, 0))
@@ -61,7 +62,7 @@ T.setBoundaryCondition(Neuman(mesh, 3, 0))              # symetria na krawedzi 3
 from fvMatrix import fvMatrix
 
 
-M, F = laplace(T, fvMatrix)       #sLaplace(T)         # ukladanie macierzy i wektora prawych stron laplace
+M, F = laplace(viscosity, T, fvMatrix)       #sLaplace(T)         # ukladanie macierzy i wektora prawych stron laplace
 
 np.set_printoptions(precision=3)
 

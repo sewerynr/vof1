@@ -1,7 +1,7 @@
 DlPrzX = 1.
 DlPrzY = 1.
 
-n = 30                                                   # ilosc podzialow
+n = 64                                                   # ilosc podzialow
 m = n
 dx = DlPrzX/m
 dy = DlPrzY/n
@@ -14,7 +14,7 @@ nt = (tk - tp)/dt
 
 x0, y0, dl = (0, 0, 0)
 
-viscosity = 0.01
+viscosity = 0.0001
 mom_relax = 0.7
 
 from mesh import Mesh
@@ -115,8 +115,8 @@ plt.title("p")
 Umag = np.sqrt(np.multiply(Ux.data, Ux.data) + np.multiply(Uy.data, Uy.data))
 animate_contour_plot([inter(mesh.xy, mesh.cells, Umag).reshape((n+1, m+1))], skip=1, dataRange= [0,1], nLevels=25, repeat=False, interval=75, diff=viscosity, adj=0, nN=n)
 #
-# from matplotlib.pyplot import quiver
-# q = quiver(mesh.cell_centers[:, 0], mesh.cell_centers[:, 1], Ux[:], Uy[:])
+from matplotlib.pyplot import quiver
+q = quiver(mesh.cell_centers[:, 0], mesh.cell_centers[:, 1], Ux[:], Uy[:])
 plt.title("magU")
 plt.show()
 
