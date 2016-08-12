@@ -5,29 +5,28 @@ from field import *
 from interpolacja import *
 
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!  Zmienne w czasie zapis macierzy zadkich jako "wektory" !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+adj = 0
 DlPrzX = 1.; DlPrzY = 1.
 
-n = 50                                                    # ilosc podzialow
+n = 20                                                    # ilosc podzialow
 m = n
 
 dx = DlPrzX/m
 dy = DlPrzY/n
 
-dt = 0.0001                                                 # CFL u*dt/dx <= 1
+dt = 0.004                                                 # CFL u*dt/dx <= 1
 tp = 0
-tk = 0.1
-
+tk = 10
 nt = (tk - tp)/dt
 
 x0, y0, dl = (0, 0, 0)
-viscosity = 0.01
+diffusivity = 0.01
 
 import time
 
 # wsp_wezl, cells, bounduary = siatka_regularna_prost(n, dx, dy, x0, y0)  czyli metoda siatka_regularna_prost zwroci to co Mesh potrzebuje czyli nodes, cells, boundary
 
-node_c, cells, bound = siatka_regularna_prost(n,m, dx, dy, x0, y0)
+node_c, cells, bound = siatka_regularna_prost(n, m, dx, dy, x0, y0)
 
 start = time.clock()
 mesh = Mesh(node_c, cells, bound)                         # 1. tworzy obiekt mesh klasy Mesh, 2. generujemy siatke dla tego obiektu funkcja siatka_reg...
@@ -43,13 +42,13 @@ T = SurfField(mesh)                                       # tworzy obiekt klasy 
 Tdir = 1
 TdirWB = 0
 
-T.setBoundaryCondition(Neuman(mesh, 0, 1))               # zero odpowiada zerowej krawedzi pobiera obiekt klasy Dirichlet (wywoluje go i tworzy)
+T.setBoundaryCondition(Neuman(mesh, 0, 0))               # zero odpowiada zerowej krawedzi pobiera obiekt klasy Dirichlet (wywoluje go i tworzy)
 #T.setBoundaryCondition(Dirichlet(mesh, 0, TdirWB))
 
 T.setBoundaryCondition(Neuman(mesh, 1, 0))
 #T.setBoundaryCondition(Dirichlet(mesh, 1, TdirWB))
 
-T.setBoundaryCondition(Neuman(mesh, 2, 0))
+T.setBoundaryCondition(Neuman(mesh, 2, 10))
 #T.setBoundaryCondition(Dirichlet(mesh, 2, TdirWB))
 
 T.setBoundaryCondition(Neuman(mesh, 3, 0))              # symetria na krawedzi 3 (4)
@@ -61,35 +60,24 @@ T.setBoundaryCondition(Neuman(mesh, 3, 0))              # symetria na krawedzi 3
 
 from fvMatrix import fvMatrix
 
+Md, Fd = laplace(diffusivity, T)
 
-M, F = laplace(viscosity, T, fvMatrix)       #sLaplace(T)         # ukladanie macierzy i wektora prawych stron laplace
+# pkt1 = n/2 + n*n/2                       # pkt srodek
+# pkt2 = (n-1)/2 + n*6                     # srodek 4 wiersze od spodu
+# pkt3 = n/2 + n*(n-5)                     # srodek 4 wiersze od gory
+# Fd[pkt1] += 0.1
+# Fd[pkt2] += 0.02
+# Fd[pkt3] += -200
 
-np.set_printoptions(precision=3)
+Mass = fvMatrix.diagonal(mesh, mesh.cells_areas / dt)
 
-#print Fc
-
-pkt1 = n/2 + n*n/2                       # pkt srodek
-pkt2 = n/2 + n*5                         # srodek 4 wiersze od spodu
-pkt3 = n/2 + n*(n-5)                     # srodek 4 wiersze od gory
-
-#F[pkt1] += -300
-#F[pkt2] += -200
-#F[pkt3] += -200
-
-
-
-I = fvMatrix.diagonal(mesh)
-
-
-M = I - M*dt
-Fconst = -F*dt
-
+M = Mass - Md
+F = Fd
 
 T.data[:] = 0                          # War. Pocz. # [:] do listy przypisze wartosc 0, samo = przypisze inny obiekt przypisuje wszedzie wartosc 0
-for i, point in enumerate(T.data):
-    if i < (n**2)/2:
-        T.data[i] = 10
-
+# for i, point in enumerate(T.data):
+#     if i < (n**2)/2:
+#         T.data[i] = 10
 
 print ">>>> Equations generated in " , time.clock()-start
 start = time.clock()
@@ -98,25 +86,33 @@ Results = list()
 Tn = T.data.reshape((n, n))
 Results.append(Tn)
 
-
 from scipy.sparse.linalg.isolve.iterative import bicgstab
 
+licznik = 0
+step = 10
+
 for iter in range(int(nt)):
-    print 'time iteration:',iter
+    licznik = licznik + 1
 
-    F = Fconst + T.data
-    # T.data = np.array(np.linalg.solve(M, F))
-    T.data = bicgstab(A=M.sparse, b=F, x0=T.data)[0]
+    solution = bicgstab(A=M.sparse, b=F + source(mesh, T.data/dt), x0=T.data, tol=1e-8)[0]
 
-    T.data = T.data.reshape((len(F), 1))
+    T.setValues(solution)
+    if licznik == step:
+        Results.append(T.data.reshape((n, n)))
+        licznik = 0
+        step += 10 + 1
+    print "pozostalo: ", int(nt - iter)
 
-    Tn = T.data.reshape((n, n))
-    Results.append(Tn)
+anim = animate_contour_plot(Results, skip=2, repeat=False, interval=75, nLevels=20, nN=n, dataRange=[0., 10], diff=diffusivity, dt=dt, adj=adj)
 
-print ">>>> Solved in ", time.clock()-start
+# from interpolacja import inter
+# from matplotlib.pyplot import quiver
+# q = quiver(mesh.cell_centers[:, 0], mesh.cell_centers[:, 1], Ux[:], Uy[:])
 
-# Animate results:
-animate_contour_plot(Results, skip=10, repeat=False, interval=75, dataRange=[0, 10])
+# animate_contour_plot([inter(mesh.xy, mesh.cells, T.data).reshape((n+1, n+1))], skip=10, repeat=False, interval=75, dataRange=[0, 10])
 
-#draw_values_edges(mesh.xy, mesh.cells, mesh.list_kr, T, n, DlPrzX, DlPrzY, Tdir)
-#draw_edges(mesh.xy, mesh.list_kr)
+# magU = np.sqrt(Ux.data**2 + Uy.data**2)
+# print magU.shape, n*n, Ux.data.shape
+# animate_contour_plot([magU.reshape(n, n)], skip=10, repeat=False, interval=75)
+plt.show()
+

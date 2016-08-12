@@ -271,8 +271,8 @@ class EdgeField:
 
 def quadratic_velocity(pc, tanPc, r):
     U = 1.
-    if r <= 0.33:
-        return tanPc*U*(-(6*r-1.)**2+1.)
+    if r <= 0.45:
+        return tanPc*U*(-(4*r-1.)**2+1.)
     else:
         return np.array([0., 0.])
 
@@ -309,7 +309,6 @@ def generate_u(mesh, velcity_function):         # w srodkach komurek (****) odp.
     Uy = SurfField(mesh, Dirichlet)
     # Ux = SurfField(mesh, Neuman)
     # Uy = SurfField(mesh, Neuman)
-
 
     vals = np.zeros((len(mesh.cell_centers), 2), dtype=float)   # (****)
 
