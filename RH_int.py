@@ -80,14 +80,7 @@ for i in range(80):
     edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))       # pole predkosci na krawedziach my mamy w centrach (tak ukladam i rozwiazuje uklad rownan)
     phi = edgeU.dot(mesh.normals)
 
-    # Rhie-Chow velocity interpolation
-    # UxStar = SurfField(mesh, data=-(momX_M.offdiagmul(Ux.data)+Fxc-Fxd)/momX_M.diag)
-    # UxStar.copyBoundaryConditions(Ux)
-    # UyStar = SurfField(mesh, data=-(momY_M.offdiagmul(Uy.data)+Fyc-Fyd)/momY_M.diag)
-    # UyStar.copyBoundaryConditions(Uy)
-    # edgeU = EdgeField.vector(einterp(UxStar), einterp(UyStar))
-    # phi = edgeU.dot(mesh.normals)
-
+    # R-H
 
     A = np.array([np.array(momX_M.diag), np.array(momY_M.diag)]).T
 
