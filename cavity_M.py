@@ -1,7 +1,7 @@
 DlPrzX = 1.
 DlPrzY = 1.
 
-n = 64                                                   # ilosc podzialow
+n = 30                                                   # ilosc podzialow
 m = n
 dx = DlPrzX/m
 dy = DlPrzY/n
@@ -14,7 +14,7 @@ nt = (tk - tp)/dt
 
 x0, y0, dl = (0, 0, 0)
 
-viscosity = 0.0001
+viscosity = 0.001
 mom_relax = 0.7
 
 from mesh import Mesh
@@ -42,7 +42,7 @@ np.set_printoptions(precision=3)
 Mxd, Fxd = laplace(viscosity, Ux)
 Myd, Fyd = laplace(viscosity, Uy)
 
-for i in range(120):
+for i in range(60):
     print "iter", i
     edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))          # interpoluje krawedziowe pole predkosci z nowych wartosci w kazdym kroku
     phi = edgeU.dot(mesh.normals)                               # do RC phi = v * n
@@ -66,7 +66,7 @@ for i in range(120):
     momY_M.relaxM1(momY_F, Uy, mom_relax)
 
     # 2.  rozwiazuje rownania pedu:
-    # oblicz i uaktualniam pole predkosci (setValues()):
+    # obliczam i uaktualniam pole predkosci (setValues()):
 
     Ux.setValues(bicgstab(A=momX_M.sparse, b=momX_F, x0=Ux.data, tol=1e-8)[0])
     Uy.setValues(bicgstab(A=momY_M.sparse, b=momY_F, x0=Uy.data, tol=1e-8)[0])
@@ -102,6 +102,7 @@ for i in range(120):
     Ux.setValues(Ux.data - gradP[:, 0] * mesh.cells_areas / A[:, 0])
     Uy.setValues(Uy.data - gradP[:, 1] * mesh.cells_areas / A[:, 1])
 
+CE = edgeDiv(phi)
 
 animate_contour_plot([Ux.data.reshape((n, m))], skip=1, nLevels=20, repeat=False, interval=75, diff=viscosity, adj=0, nN=n)
 plt.title("Ux")
@@ -112,8 +113,12 @@ plt.title("Uy")
 animate_contour_plot([p.data.reshape((n, m))], skip=1, nLevels=20, repeat=False, interval=75, diff=viscosity, adj=0, nN=n)
 plt.title("p")
 
+animate_contour_plot([CE.reshape((n, m))], skip=1, nLevels=20, repeat=False, interval=75, diff=viscosity, adj=0, nN=n)
+plt.title("CE")
+
 Umag = np.sqrt(np.multiply(Ux.data, Ux.data) + np.multiply(Uy.data, Uy.data))
 animate_contour_plot([inter(mesh.xy, mesh.cells, Umag).reshape((n+1, m+1))], skip=1, dataRange= [0,1], nLevels=25, repeat=False, interval=75, diff=viscosity, adj=0, nN=n)
+
 #
 from matplotlib.pyplot import quiver
 q = quiver(mesh.cell_centers[:, 0], mesh.cell_centers[:, 1], Ux[:], Uy[:])

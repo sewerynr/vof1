@@ -6,14 +6,13 @@ einterp = EdgeField.interp
 adj = 0
 DlPrzX = 1.
 DlPrzY = 1.
-n = 54
+n = 80
 m = n
 dx = DlPrzX/n
 dy = DlPrzY/n
 x0, y0, dl = (0, 0, 0)
 
 diffusivity = 0.0001
-# diffusivity = 0.01, 1
 
 node_c, cells, bound = siatka_regularna_prost(n, m, dx, dy, x0, y0)
 mesh = Mesh(node_c, cells, bound)
@@ -43,8 +42,6 @@ adj = adjustPhi(phi)
 Md, Fd = laplace(diffusivity, T)
 Mc, Fc = div(phi, T)
 
-from scipy.sparse.linalg.isolve.iterative import bicgstab
-
 # pkt1 = n/2 + n*n/2                           # pkt srodek
 pkt2 = n/2 + n*10                             # srodek 4 wiersze od spodu
 # pkt3 = n/2 + n*(n-5)                         # srodek 4 wiersze od gory
@@ -55,6 +52,7 @@ pkt2 = n/2 + n*10                             # srodek 4 wiersze od spodu
 M = Mc - Md  #
 F = Fd - Fc  #
 
+from scipy.sparse.linalg.isolve.iterative import bicgstab
 res, info = bicgstab(A=M.sparse, b=F, x0=T.data, tol=1e-8, maxiter=250e3)
 
 T.setValues(res)
@@ -65,8 +63,7 @@ print ">>>> info: ", info
 animate_contour_plot([inter(mesh.xy, mesh.cells, T.data).reshape((n+1, m+1))], skip=10, nLevels=16, repeat=False, interval=75, nN=n, diff=diffusivity, adj=adj)
 
 magU = np.sqrt(Ux.data**2 + Uy.data**2)
-print magU, n*m, Ux.data
-animate_contour_plot([magU.reshape(n, m)], nLevels=16, skip=10, repeat=False, interval=75, dataRange= [0,1])
+animate_contour_plot([magU.reshape(n, m)], nLevels=16, skip=10, repeat=False, interval=75, dataRange=[0, 1], nN=n, diff=diffusivity, adj=adj)
 
 
 plt.show()

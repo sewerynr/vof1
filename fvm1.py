@@ -94,7 +94,7 @@ def npArrayMatrix(mesh):
 from fvMatrix import fvMatrix
 
 
-def laplace(coeff, field, matrixGeneratorFunction=fvMatrix):  # matrixProvider wywoluje konstruktor metody fvMatrix  z polem T lambda funkcja anonimowa
+def laplace(coeff, field, matrixGeneratorFunction=fvMatrix):  #matrixGeneratorFunction wywoluje konstruktor metody fvMatrix  z polem T
     n, lista_kra = field.mesh.n, field.mesh.list_kr
     macierz_K_e = matrixGeneratorFunction(field.mesh)
     mesh = field.mesh
@@ -138,24 +138,20 @@ def laplace(coeff, field, matrixGeneratorFunction=fvMatrix):  # matrixProvider w
 def div(phi, field, matrixGeneratorFunction = fvMatrix):                  # phi to pole predkosci na scianach skalarne bo przemnozone skalarnie razy wektor normalny (ro * wektor predkosci * wekt normalny) = phi
     n, lista_kra = field.mesh.n, field.mesh.list_kr                      # lista kr: [ 1 0 0 1]  = [pkt1 pkt2 wl sasiad]
     D = matrixGeneratorFunction(field.mesh)
-
     Rhs = np.zeros(n)
     mesh = field.mesh
-
     for i, k in enumerate(mesh.list_kr):
         w, s = k[2:]
         edgeLen = mesh.eLengths[i]
         phiEdge = phi.data[i]                                # pobiera wartosci predkosci z macierzy phi[dla elementu i]
         #!!!!!!!!!!!!!!!!!!!!!!!!!!!! Wiersz mowi ktora komorka kolumna co i skad wlata wylata  (strumien o jakiejs temp)   !!!!!!!!!!!!!!!!!!!!!!!!!!
-
         if s > -1:
-            if phiEdge > 0:                              # od wlasiciela do sasiada
+            if phiEdge > 0:                            # od wlasiciela do sasiada
                 D[w, w] += phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
                 D[s, w] -= phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
-            else:                                        # phiedge < 0 mniejsze od sasi ada do wlasciciela
+            else:                                      # phiedge < 0 mniejsze od sasi ada do wlasciciela
                 D[s, s] -= phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [od sasiada , z temp sasiada]
                 D[w, s] += phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [do wl , temp sasiada]
-
 
         # if k[3] > -1:
         #         D[w, w] -= phiEdge * edgeLen / 2
@@ -163,40 +159,35 @@ def div(phi, field, matrixGeneratorFunction = fvMatrix):                  # phi 
         #         D[s, s] += phiEdge * edgeLen / 2
         #         D[s, w] += phiEdge * edgeLen / 2
 
-
     field.apply_bc_convectiveFlux(D, Rhs, phi.data)
     return D, Rhs
 
-
-def eInt(edgeField):            # P * phi
-    import numpy as np
-
-    mesh = edgeField.mesh
-    res = np.zeros(len(mesh.cell_centers))
-
-    for i, (v, k) in enumerate(zip(edgeField.data, mesh.list_kr)):
-        eLen = mesh.eLengths[i]
-        res[k[2]] += v * eLen
-        if k[3] > -1:
-            res[k[3]] -= v * eLen
-
-    return res
+# def eInt(edgeField):            # P * phi
+#     import numpy as np
+#
+#     mesh = edgeField.mesh
+#     res = np.zeros(len(mesh.cell_centers))
+#
+#     for i, (v, k) in enumerate(zip(edgeField.data, mesh.list_kr)):
+#         eLen = mesh.eLengths[i]
+#         res[k[2]] += v * eLen
+#         if k[3] > -1:
+#             res[k[3]] -= v * eLen
+#
+#     return res
 
 
 def eInt_implicit(mesh, matrixGen = lambda dims : np.zeros(shape=dims)):        # P
-    import numpy as np
-
     res = matrixGen( (mesh.n, len(mesh.list_kr)) )      #jesli wywolujac eInt_implicit nie podamy to wywola lambda
-
+    # wlacznie z WB dla WB -eLen
     for i, (k) in enumerate(mesh.list_kr):
         eLen = mesh.eLengths[i]
         res[k[2], i] = eLen
         if k[3] > -1:
             res[k[3], i] = - eLen
-
     return res
 
-
+# zczytaj indeksy krawedzi nie brzegowych do listy index
 def adjustPhi_eqSys(phiEdgeField):
     P = eInt_implicit(phiEdgeField.mesh)
     index = []
@@ -206,26 +197,36 @@ def adjustPhi_eqSys(phiEdgeField):
     return P, index
 
 def adjustPhi(phiEdgeField):
-
     P, internIndex = adjustPhi_eqSys(phiEdgeField)
-    Pp = P[:, internIndex]      # P bez warunkow brzegowych ich nie chcemy poprawiac na nich ma byc to co zadane
+    Pp = P[:, internIndex]      # Pp to P bez warunkow brzegowych ich nie chcemy poprawiac na nich ma byc to co zadane
     F = P.dot(phiEdgeField.data)
-
     from scipy.sparse import csr_matrix
     from scipy.sparse.linalg import cg
 
     M = Pp.dot(Pp.T)
     M = csr_matrix(M)
-
     Lambda = cg(M, F)[0]
-
     dPhi = - Pp.T.dot(Lambda)
     phiEdgeField.data[internIndex] += dPhi
     return 1
 
+def adjustPhiold(phiEdgeField, matrixGen = lambda dims : np.zeros(shape=dims)):
+    P = matrixGen((phiEdgeField.mesh.n, len(phiEdgeField.mesh.list_kr)))
+    for i, (k) in enumerate(phiEdgeField.mesh.list_kr):
+        eLen = phiEdgeField.mesh.eLengths[i]
+        P[k[2], i] = eLen
+        if k[3] > -1:
+            P[k[3], i] = - eLen
+    F = P.dot(phiEdgeField.data)
+    from scipy.sparse import csr_matrix
+    from scipy.sparse.linalg import cg
 
-
-
+    M = P.dot(P.T)
+    M = csr_matrix(M)
+    Lambda = cg(M, F)[0]
+    dPhi = - P.T.dot(Lambda)
+    phiEdgeField.data += dPhi
+    return 2
 
 def WB_dir_T1(lista_kr, Td, wsp_wezl, macierz_K_e, rhs):
     # warunki brzegowe 1) jako T w centrum komorki wiec po prostu w macierz K wpisuje w miejsce odp sr. kom 1 a w wektor pr stron = danej temp
@@ -236,7 +237,6 @@ def WB_dir_T1(lista_kr, Td, wsp_wezl, macierz_K_e, rhs):
             macierz_K_e[c, c] = 1
             if wsp_wezl[kraw[0], 1] == 0 and wsp_wezl[kraw[1], 1] == 0:          # spr wspl obu wezlow krawedzi czy sa rowne zero po y
                 rhs[c] = Td
-
     return rhs
 
 
@@ -250,7 +250,6 @@ def draw_values_edges(wsp_wezl, cells, listak, T, n, Tdirich, DlPrzX, DlPrzY):
     :param  T jako pole temperatur z rozwiazania Tdirich WB dir
     '''
     Tinter = inter(wsp_wezl, cells, T.data)
-
     for bId, b in enumerate(T.mesh.boundaries):
         varB = T.boundaries[bId]
         for eLocal, eGlobal in enumerate(b):
@@ -268,7 +267,6 @@ def draw_values_edges(wsp_wezl, cells, listak, T, n, Tdirich, DlPrzX, DlPrzY):
             node2 = T.mesh.list_kr[eGlobal, 1]
             Tinter[ [node1, node2] ] += valOnEdge/2
 
-
     # numpy linespace dzieli przedzial na n podzialow o rownym odstepie
     X, Y = np.meshgrid(np.linspace(0, DlPrzX, n+1), np.linspace(0, DlPrzY, n+1))
     T_new = Tinter.reshape((n+1, n+1))
@@ -277,7 +275,6 @@ def draw_values_edges(wsp_wezl, cells, listak, T, n, Tdirich, DlPrzX, DlPrzY):
     plt.colorbar(cont)
 
     draw_edges(wsp_wezl, listak)
-
     plt.show()
 
 
@@ -340,12 +337,7 @@ def animate_contour_plot(framesDatas, sizeX=(0, 1), sizeY=(0, 1), dataRange=None
         raise Exception("Data frames number should be at least one")
 
     Ny, Nx = framesDatas[0].shape
-    # print "nx ny",Nx, Ny
     X, Y = np.meshgrid(np.linspace(sizeX[0], sizeX[1], Nx), np.linspace(sizeY[0], sizeY[1], Ny))
-    # print "x shape ", X.shape, "  Y shape ", Y.shape
-    # print "x, y fvm1"
-    # print X
-    # print Y
     if not dataRange:
         minD = min(framesDatas[0].flatten())
         maxD = max(framesDatas[0].flatten())
@@ -365,30 +357,18 @@ def animate_contour_plot(framesDatas, sizeX=(0, 1), sizeY=(0, 1), dataRange=None
     Ta = str(Tempa)
     adj = str(adj)
     Aa = "diff: " + Aa + "   dt: "+ Ba + "   n: " + Ca + "   AdjPhi: " + adj
-    # print Aa
     cbar.ax.set_ylabel(Aa)
 
     if len(framesDatas) > 1:
         def animate(i):
             i = i * skip
             cs = plt.contourf(X, Y, framesDatas[i], ticks)
-            # cbar.ax.set_yticklabels(map(str, ticks))
-            # cbar.update_ticks()
-
             cs.zmin = minD
             cs.zmmax = maxD
             plt.title('Frame %d' % (i + 1))
             return cs
 
         return animation.FuncAnimation(fig, animate, frames=len(framesDatas) / skip, interval=interval, repeat=repeat)
-# for id, cell in enumerate(k_ids):
-#     print id, cell
-
-# print np.allclose(np.dot(macierz_K_e, T), wektor_pr_str)
-# print T[:n], len(T)
-# print macierz_K_e[:n,:]
-# print wektor_pr_str[:n]
-# print wektor_pr_str
 
 def source(mesh, cellData):
     import numpy as np

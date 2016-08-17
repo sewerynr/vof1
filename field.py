@@ -113,7 +113,7 @@ class Neuman(BoundaryField):                                        # klasa dla 
         self.mesh = mesh
 
     # mamy pochodna (wartosci szukanej) na krawedzi ale nie wiemy jaka sama wartosci wiec do np wizualizacji przyda nam sie wartosc rozwiazaznia (calka z poch)
-    def upadate(self, rozw_ukl_row):                            # gdy sie rozwiaze to ma uaktualnic sama siebie ta metoda te klase
+    def upadate(self, rozw_ukl_row):                            # gdy sie rozwiaze to ma uaktualnic sama siebie ta metoda tej klasy
         self.extrapolate(rozw_ukl_row)
         '''
         TODO - calc. edge values from cells canter and derivative value on edge
@@ -286,7 +286,7 @@ class EdgeField:
 
 def quadratic_velocity(pc, tanPc, r):
     U = 1.
-    if r <= 0.45:
+    if r <= 0.5:
         return tanPc*U*(-(4*r-1.)**2+1.)
     else:
         return np.array([0., 0.])

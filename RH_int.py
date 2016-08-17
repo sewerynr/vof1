@@ -1,7 +1,7 @@
 DlPrzX = 1.
 DlPrzY = 1.
 
-n = 34                                                   # ilosc podzialow
+n = 26                                                   # ilosc podzialow
 m = n
 dx = DlPrzX/m
 dy = DlPrzY/n
@@ -35,9 +35,9 @@ Ux = SurfField(mesh, Dirichlet)                                       # tworzy o
 Uy = SurfField(mesh, Dirichlet)
 p = SurfField(mesh, Neuman)
 
-Ux.setBoundaryCondition(Dirichlet(mesh, 0, 0.))
+Ux.setBoundaryCondition(Dirichlet(mesh, 0, 1.))
 Ux.setBoundaryCondition(Dirichlet(mesh, 1, 1.))
-Ux.setBoundaryCondition(Dirichlet(mesh, 2, 0.))
+Ux.setBoundaryCondition(Dirichlet(mesh, 2, 1.))
 Ux.setBoundaryCondition(Dirichlet(mesh, 3, 1.))
 
 # p.setBoundaryCondition(Dirichlet(mesh, 3, 10))
@@ -48,7 +48,7 @@ np.set_printoptions(precision=3)
 Mxd, Fxd = laplace(viscosity, Ux)
 Myd, Fyd = laplace(viscosity, Uy)
 
-for i in range(80):
+for i in range(60):
     print "iter", i
     edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))          # interpoluje krawedziowe pole predkosci z nowych wartosci w kazdym kroku
     phi = edgeU.dot(mesh.normals)                               # do RC phi = v * n
@@ -110,6 +110,7 @@ for i in range(80):
     Ux.setValues(Ux.data - gradP[:, 0] * mesh.cells_areas / A[:, 0])
     Uy.setValues(Uy.data - gradP[:, 1] * mesh.cells_areas / A[:, 1])
 
+CE = edgeDiv(phi)
 
 animate_contour_plot([Ux.data.reshape((n, m))], skip=1, nLevels=20, repeat=False, interval=75, diff=viscosity, adj=0, nN=n)
 plt.title("Ux")
@@ -119,6 +120,9 @@ plt.title("Uy")
 
 animate_contour_plot([p.data.reshape((n, m))], skip=1, nLevels=20, repeat=False, interval=75, diff=viscosity, adj=0, nN=n)
 plt.title("p")
+
+animate_contour_plot([CE.reshape((n, m))], skip=1, nLevels=20, repeat=False, interval=75, diff=viscosity, adj=0, nN=n)
+plt.title("CE")
 
 Umag = np.sqrt(np.multiply(Ux.data, Ux.data) + np.multiply(Uy.data, Uy.data))
 animate_contour_plot([inter(mesh.xy, mesh.cells, Umag).reshape((n+1, m+1))], skip=1, dataRange= [0,2], nLevels=25, repeat=False, interval=75, diff=viscosity, adj=0, nN=n)
