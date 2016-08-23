@@ -116,7 +116,7 @@ for iter in range(int(nt)):
         Results.append(T.data.reshape((n, n)))
         licznik = 0
         step += 10 + 1
-    print "pozostalo: ", int(nt - iter)
+    print "iter left: ", int(nt - iter)
 
 anim = animate_contour_plot(Results, skip=2, repeat=False, interval=75, nLevels=20, nN=n, dataRange=[0., 2], diff=diffusivity, dt=dt, adj=adj)
 

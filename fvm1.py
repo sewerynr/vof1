@@ -94,16 +94,16 @@ def npArrayMatrix(mesh):
 from fvMatrix import fvMatrix
 
 
-def laplace(coeff, field, matrixGeneratorFunction=fvMatrix):  #matrixGeneratorFunction wywoluje konstruktor metody fvMatrix  z polem T
+def laplace(coeff, field, matrixGeneratorFunction=fvMatrix):         #matrixGeneratorFunction wywoluje konstruktor metody fvMatrix  z polem T
     n, lista_kra = field.mesh.n, field.mesh.list_kr
     macierz_K_e = matrixGeneratorFunction(field.mesh)
     mesh = field.mesh
 
     from field import EdgeField, SurfField, Neuman
 
-    if not hasattr(coeff, "__iter__") and not isinstance(coeff, EdgeField):  # czy to liczba czy tablica o wym. [len(mesh.cells) x 2]
-        coeff = np.ones((len(mesh.cells), 2), dtype=float) * coeff           # liczba wiec stworz wektor i pomnoz coeff razy wektor jedynek [1,1]
-    elif isinstance(coeff, np.ndarray) and (len(coeff.shape) == 1 or coeff.shape[1] == 1):      # tablica wiec tylko ja obroc
+    if not hasattr(coeff, "__iter__") and not isinstance(coeff, EdgeField):          # czy to liczba czy tablica o wym. [len(mesh.cells) x 2]
+        coeff = np.ones((len(mesh.cells), 2), dtype=float) * coeff                   # liczba wiec stworz wektor i pomnoz coeff razy wektor jedynek [1,1]
+    elif isinstance(coeff, np.ndarray) and (len(coeff.shape) == 1 or coeff.shape[1] == 1):          # tablica wiec tylko ja obroc
         coeff = np.array([coeff, coeff]).T
 
     # another but different if
@@ -146,46 +146,33 @@ def div(phi, field, matrixGeneratorFunction = fvMatrix):                  # phi 
         phiEdge = phi.data[i]                                # pobiera wartosci predkosci z macierzy phi[dla elementu i]
         #!!!!!!!!!!!!!!!!!!!!!!!!!!!! Wiersz mowi ktora komorka kolumna co i skad wlata wylata  (strumien o jakiejs temp)   !!!!!!!!!!!!!!!!!!!!!!!!!!
         if s > -1:
-            if phiEdge > 0:                            # od wlasiciela do sasiada
+            if phiEdge > 0:                            # od wlasiciela do sasiada, skad wylata tam dodaje do macierzy
                 D[w, w] += phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [od wl , temp wl]
                 D[s, w] -= phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [do sas, temp wl]
             else:                                      # phiedge < 0 mniejsze od sasi ada do wlasciciela
                 D[s, s] -= phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [od sasiada , z temp sasiada]
                 D[w, s] += phiEdge * edgeLen           # [ skad wylata/dokad , z jaka temp ] => [do wl , temp sasiada]
 
+        # Pe = U*dx / a_diff
         # if k[3] > -1:
-        #         D[w, w] -= phiEdge * edgeLen / 2
-        #         D[w, s] -= phiEdge * edgeLen / 2
-        #         D[s, s] += phiEdge * edgeLen / 2
-        #         D[s, w] += phiEdge * edgeLen / 2
+        #         D[w, w] += phiEdge * edgeLen / 2      # dodatnie phi to wylata od wlasciciela wiec do niego dodac
+        #         D[w, s] += phiEdge * edgeLen / 2
+        #         D[s, s] -= phiEdge * edgeLen / 2      # phi ujemne to od sasaiada - i - da plus dodamy do sadiada
+        #         D[s, w] -= phiEdge * edgeLen / 2
 
     field.apply_bc_convectiveFlux(D, Rhs, phi.data)
     return D, Rhs
 
-# def eInt(edgeField):            # P * phi
-#     import numpy as np
-#
-#     mesh = edgeField.mesh
-#     res = np.zeros(len(mesh.cell_centers))
-#
-#     for i, (v, k) in enumerate(zip(edgeField.data, mesh.list_kr)):
-#         eLen = mesh.eLengths[i]
-#         res[k[2]] += v * eLen
-#         if k[3] > -1:
-#             res[k[3]] -= v * eLen
-#
-#     return res
-
 
 def eInt_implicit(mesh, matrixGen = lambda dims : np.zeros(shape=dims)):        # P
-    res = matrixGen( (mesh.n, len(mesh.list_kr)) )      #jesli wywolujac eInt_implicit nie podamy to wywola lambda
+    P = matrixGen( (mesh.n, len(mesh.list_kr)) )      #jesli wywolujac eInt_implicit nie podamy to wywola lambda
     # wlacznie z WB dla WB -eLen
     for i, (k) in enumerate(mesh.list_kr):
         eLen = mesh.eLengths[i]
-        res[k[2], i] = eLen
+        P[k[2], i] = eLen
         if k[3] > -1:
-            res[k[3], i] = - eLen
-    return res
+            P[k[3], i] = - eLen
+    return P
 
 # zczytaj indeksy krawedzi nie brzegowych do listy index
 def adjustPhi_eqSys(phiEdgeField):

@@ -43,7 +43,7 @@ Mxd, Fxd = laplace(viscosity, Ux)
 Myd, Fyd = laplace(viscosity, Uy)
 
 for i in range(60):
-    print "iter", i
+    print "Iter:", i
     edgeU = EdgeField.vector(einterp(Ux), einterp(Uy))          # interpoluje krawedziowe pole predkosci z nowych wartosci w kazdym kroku
     phi = edgeU.dot(mesh.normals)                               # do RC phi = v * n
     gradP = grad(p)                                             # obl gradienty cisnienia w srodkach komorek z nowych wart cisnienia w kazdym kroku
@@ -119,7 +119,6 @@ plt.title("CE")
 Umag = np.sqrt(np.multiply(Ux.data, Ux.data) + np.multiply(Uy.data, Uy.data))
 animate_contour_plot([inter(mesh.xy, mesh.cells, Umag).reshape((n+1, m+1))], skip=1, dataRange= [0,1], nLevels=25, repeat=False, interval=75, diff=viscosity, adj=0, nN=n)
 
-#
 from matplotlib.pyplot import quiver
 q = quiver(mesh.cell_centers[:, 0], mesh.cell_centers[:, 1], Ux[:], Uy[:])
 plt.title("magU")

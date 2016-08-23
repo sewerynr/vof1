@@ -1,5 +1,4 @@
 from duplicity.pexpect import which
-
 import numpy as np
 import time
 
@@ -41,7 +40,6 @@ class Mesh:
             p2 = self.xy[edge[1], :]
             x, y = self.wsp_wekt_z_wsp(p2, p1)
             se[i] = [-y, x]
-            # print se[i], i
         return se
 
     def __normals_and_edge_lengths__(self):
@@ -139,15 +137,12 @@ class Mesh:
         return self.wektor_norm(*wektor)                 # pierwszy z wektor to pierwsza zmienna itd
 
     def __lista_krawedzi__(self):
-
         s = 0
         for cell in self.cells:                          # [ 1 0 12 11]  = [kr1 kr2 kr3 kr4]
             s += len(cell)                                # zlicza ile w kolejnych komurkach pkt (krawedzi) (liczy ile jest w wierszu [1 2 12 11] czyli 4 krawedzie
-        # print self.cells
         lista_kr = np.array([[0] * 4] * s)
 
         for i, cell in enumerate(self.cells):
-
             ilosc = lista_kr.shape[1]                   # ilosc kolumn ( w cells ilosc kolumn odp ilosci krawedzi )
             for licz in range(0, ilosc, 1):
                 if licz < ilosc -1:
@@ -187,17 +182,14 @@ class Mesh:
                 x2, y2 = self.xy[p2]
                 ccs = (x1 + x2) / 2, (y1 + y2) / 2
                 ecf[i] = ccs - ccw
-        # print ecf
         return ecf
 
 
     def __wlasciciel_sasiad__(self, lista_krawedzi):
         k_ids = lista_krawedzi[:, :2]
-        # print len(k_ids)
         # tworze liste o nazwie pairs (do listy() mozna dopisywac elementy przez pairs.append() )
         pairs = list()
 
-        # start = time.clock()
         for i1, k in enumerate(k_ids.tolist()):
             m1 = k[0] == k_ids[:, 1]
             m2 = k[1] == k_ids[:, 0]
@@ -207,10 +199,7 @@ class Mesh:
             if id.shape[0] > 0:
                 pairs.append((i1, int(id[0])))
 
-        # print ">>>>>>>>> ", time.clock() - start
-        # start = time.clock()
         do_wyrzucenia = list()
-#        count = 0
 
         # zapisuje w lista_krawedzi sasiada (biorac wlascicela z powtarzajacej sie jako sasiada we wczesjniejszej) oraz wpisuje powtarzajace sie do_wyrzucenia
         for p in pairs:
@@ -219,11 +208,6 @@ class Mesh:
                 lista_krawedzi[p[0], 3] = lista_krawedzi[p[1], 2]
                 do_wyrzucenia.append(p[1])
 
-        # print ">>>>>>>>> ", time.clock() - start
-        # start = time.clock()
-
-        # sprawdza czy numer krawedzi z lista_kr jest w do_wyrzucenia jesli nie to dopisuje do uniklnych i nadpisuje stara tablice lista_kr nowa bez powtarzajacych sie
-
         list_kr_unik = list()
         for i, krawed in enumerate(lista_krawedzi):
             if i not in do_wyrzucenia:
@@ -231,9 +215,6 @@ class Mesh:
 
         lista_krawedzi = np.array(list_kr_unik)
 
-        # print ">>>>>>>>> ", time.clock() - start
-        # start = time.clock()
-        # print "lk:", lista_krawedzi
         del list_kr_unik, do_wyrzucenia
 
         return lista_krawedzi
